@@ -1,0 +1,49 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/shared_expenses
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate   
+    show-sql: false         
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  servlet:
+    multipart:
+      max-file-size: 10MB   
+      max-request-size: 10MB
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:thisIsADevelopmentSecretKeyThatMustBeChangedInProduction}
+    expiration-ms: 86400000  
+
+  
+  currency:
+    usd-to-inr-rate: 83.50
+
+logging:
+  level:
+    root: INFO
+    com.sharedexpenses: DEBUG
+    org.springframework.security: WARN
+    org.flywaydb: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always

@@ -1,0 +1,17 @@
+target/
+.idea/
+*.iml
+.vscode/
+*.class
+*.jar
+*.war
+AI_USAGE.md
+DECISIONS.md
+SCOPE.md
+.env
+*.env
+
+.DS_Store
+Thumbs.db
+
+!.mvn/wrapper/maven-wrapper.jar
