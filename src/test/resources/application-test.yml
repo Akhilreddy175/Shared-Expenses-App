@@ -8,7 +8,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
-    database-platform: org.hibernate.dialect.H2Dialect
+    open-in-view: false
 
   flyway:
     enabled: false
