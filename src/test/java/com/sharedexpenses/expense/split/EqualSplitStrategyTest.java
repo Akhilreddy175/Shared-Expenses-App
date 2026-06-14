@@ -34,7 +34,7 @@ class EqualSplitStrategyTest {
     @Test
     @DisplayName("rounding remainder goes to the last participant")
     void roundingRemainderGoesToLastParticipant() {
-        // 100 / 3 = 33.33 + 33.33 + 33.34
+        
         List<BigDecimal> shares = strategy.split(new BigDecimal("100.00"), participantsOf(3));
 
         assertThat(shares).hasSize(3);
@@ -72,7 +72,7 @@ class EqualSplitStrategyTest {
         assertThat(sum).isEqualByComparingTo("2400.00");
     }
 
-    // --- helpers ---
+    
 
     private List<ParticipantRequest> participantsOf(int count) {
         return IntStream.rangeClosed(1, count)

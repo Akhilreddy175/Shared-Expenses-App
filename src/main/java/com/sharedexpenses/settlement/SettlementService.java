@@ -35,11 +35,7 @@ public class SettlementService {
         this.userRepository = userRepository;
     }
 
-    /**
-     * Records that the payer handed cash to the receiver.
-     * Both must be members or former members of the group — former members
-     * may still have outstanding debts they need to clear.
-     */
+    
     @Transactional
     public SettlementDetailResponse recordSettlement(Long groupId, RecordSettlementRequest request,
                                                      Long currentUserId) {
@@ -110,10 +106,7 @@ public class SettlementService {
         return SettlementDetailResponse.from(settlement, payer, receiver);
     }
 
-    /**
-     * Deletes a settlement — use when a settlement was recorded in error.
-     * The balance engine will automatically reflect the reversal on the next read.
-     */
+    
     @Transactional
     public void deleteSettlement(Long groupId, Long settlementId, Long currentUserId) {
         groupService.requireMembership(groupId, currentUserId);
@@ -121,7 +114,7 @@ public class SettlementService {
         settlementRepository.delete(settlement);
     }
 
-    // ---- Helpers ----
+    
 
     private void validateGroupMembership(Long groupId, Long userId, String role) {
         if (!groupMemberRepository.existsByGroupIdAndUserId(groupId, userId)) {

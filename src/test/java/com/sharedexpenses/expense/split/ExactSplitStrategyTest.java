@@ -42,7 +42,7 @@ class ExactSplitStrategyTest {
     void throwsWhenShareAmountMissing() {
         ParticipantRequest noAmount = new ParticipantRequest();
         noAmount.setUserId(1L);
-        // shareAmount is null
+        
 
         assertThatThrownBy(() -> strategy.split(new BigDecimal("100.00"), List.of(noAmount)))
                 .isInstanceOf(ValidationException.class)
@@ -65,7 +65,7 @@ class ExactSplitStrategyTest {
     @Test
     @DisplayName("accepts amounts within 1-cent rounding tolerance")
     void acceptsOnecentRoundingTolerance() {
-        // 33.33 + 33.33 + 33.33 = 99.99, total is 100.00 — within 0.01 tolerance
+        
         List<ParticipantRequest> participants = List.of(
                 withShare(1L, "33.33"),
                 withShare(2L, "33.33"),
@@ -76,7 +76,7 @@ class ExactSplitStrategyTest {
                 () -> strategy.split(new BigDecimal("100.00"), participants));
     }
 
-    // --- helpers ---
+    
 
     private ParticipantRequest withShare(Long userId, String amount) {
         ParticipantRequest p = new ParticipantRequest();

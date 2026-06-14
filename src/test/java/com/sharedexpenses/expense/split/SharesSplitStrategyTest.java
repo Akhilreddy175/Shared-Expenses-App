@@ -40,7 +40,7 @@ class SharesSplitStrategyTest {
     @Test
     @DisplayName("shares always sum exactly to total (rounding handled by last participant)")
     void sharesAlwaysSumToTotal() {
-        // 3:1 with 100 → 75 + 25 = 100 (clean)
+        
         List<ParticipantRequest> participants = List.of(
                 withShares(1L, "3"),
                 withShares(2L, "1")
@@ -55,7 +55,7 @@ class SharesSplitStrategyTest {
     @Test
     @DisplayName("absolute values don't matter — only the ratio")
     void absoluteValueDoesNotMatter() {
-        // shares=[2,1,1] should produce identical results to shares=[200,100,100]
+        
         List<BigDecimal> small = strategy.split(new BigDecimal("120.00"),
                 List.of(withShares(1L, "2"), withShares(2L, "1"), withShares(3L, "1")));
 
@@ -72,7 +72,7 @@ class SharesSplitStrategyTest {
     void throwsWhenSharesFieldMissing() {
         ParticipantRequest p = new ParticipantRequest();
         p.setUserId(1L);
-        // shares is null
+        
 
         assertThatThrownBy(() -> strategy.split(new BigDecimal("100.00"), List.of(p)))
                 .isInstanceOf(ValidationException.class)
@@ -88,7 +88,7 @@ class SharesSplitStrategyTest {
                 .hasMessageContaining("positive");
     }
 
-    // --- helpers ---
+    
 
     private ParticipantRequest withShares(Long userId, String sharesValue) {
         ParticipantRequest p = new ParticipantRequest();

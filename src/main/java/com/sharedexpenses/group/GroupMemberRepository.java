@@ -18,7 +18,7 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 
     boolean existsByGroupIdAndUserIdAndLeftAtIsNull(Long groupId, Long userId);
 
-    // Used by settlement validation — a former member can still record a settlement
+    
     boolean existsByGroupIdAndUserId(Long groupId, Long userId);
 
     List<GroupMember> findByUserIdAndLeftAtIsNull(Long userId);

@@ -19,8 +19,8 @@ public class RecordSettlementRequest {
     @DecimalMin(value = "0.01", message = "Amount must be greater than zero")
     private BigDecimal amount;
 
-    // Optional — defaults to today in the service
-    // Back-dating is allowed: if the cash changed hands last Tuesday, record it accurately
+    
+    
     private LocalDate settlementDate;
 
     @Size(max = 500, message = "Note must not exceed 500 characters")

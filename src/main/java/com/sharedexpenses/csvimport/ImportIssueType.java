@@ -1,0 +1,19 @@
+package com.sharedexpenses.csvimport;
+
+
+public enum ImportIssueType {
+    
+    MISSING_REQUIRED_FIELD,
+    INVALID_AMOUNT,
+    INVALID_DATE,
+    INVALID_SPLIT_TYPE,
+    INVALID_CURRENCY,
+    UNKNOWN_USER,
+    PARTICIPANT_VALUE_MISSING,
+
+    
+    DEFAULT_APPLIED,
+    DUPLICATE_ROW,
+    AMOUNT_TOO_LARGE,
+    FUTURE_DATE
+}

@@ -6,18 +6,7 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/**
- * Records a direct cash payment from one group member to another.
- *
- * Payer:    the person who handed over the money.
- * Receiver: the person who collected it.
- * Amount:   the exact amount transferred.
- * Note:     optional context — "UPI payment via PhonePe", "handed cash at dinner", etc.
- *
- * Effect on balances:
- *   Payer's balance goes UP   (they paid cash, reducing their debt).
- *   Receiver's balance goes DOWN (they received cash, reducing what's owed to them).
- */
+
 @Entity
 @Table(name = "settlements")
 public class Settlement extends BaseEntity {

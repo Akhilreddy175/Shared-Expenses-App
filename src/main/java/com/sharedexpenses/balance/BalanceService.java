@@ -24,32 +24,11 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * Computes balances dynamically from expense, participant, and settlement data.
- *
- * Why balances are derived data and not stored:
- *
- * Storing balances creates two sources of truth. Any bug that fails to update
- * the balance row after saving an expense leaves the data silently inconsistent.
- * There is no easy way to audit "how did this number get here?" without tracing
- * through an update history.
- *
- * Computing dynamically means:
- *   - The balance is always exactly what the underlying rows say it should be.
- *   - Any balance can be audited by inspecting expense and settlement rows.
- *   - No synchronization logic needed. No risk of stale data.
- *
- * Balance formula per user:
- *   balance = totalPaid (expenses) - totalShare (expenses) + settledAmount (settlements)
- *
- * Settlement effect:
- *   Payer's balance goes UP   — they paid cash, reducing their debt.
- *   Receiver's balance goes DOWN — they received cash, reducing what's owed to them.
- */
+
 @Service
 public class BalanceService {
 
-    // Ignore balances smaller than half a cent — rounding artefacts, not real debts
+    
     private static final BigDecimal ROUNDING_THRESHOLD = new BigDecimal("0.005");
 
     private final GroupRepository groupRepository;
@@ -137,7 +116,7 @@ public class BalanceService {
         return computeMinimumSettlements(remaining, displayNames);
     }
 
-    // ---- Core computation methods (package-private for direct unit testing) ----
+    
 
     Map<Long, BigDecimal> computeTotalPaid(List<Expense> expenses, Set<Long> userIds) {
         Map<Long, BigDecimal> paid = new HashMap<>();
@@ -153,14 +132,7 @@ public class BalanceService {
         return owed;
     }
 
-    /**
-     * Computes the net settlement adjustment per user.
-     *
-     * Payer's adjustment is POSITIVE: they paid cash, which reduces their outstanding debt.
-     * Receiver's adjustment is NEGATIVE: they received cash, which reduces the credit owed to them.
-     *
-     * Final balance = totalPaid - totalShare + settlementNet
-     */
+    
     Map<Long, BigDecimal> computeSettlementNet(List<Settlement> settlements, Set<Long> userIds) {
         Map<Long, BigDecimal> net = new HashMap<>();
         userIds.forEach(id -> net.put(id, BigDecimal.ZERO));
@@ -171,15 +143,7 @@ public class BalanceService {
         return net;
     }
 
-    /**
-     * Greedy algorithm: always pair the biggest debtor with the biggest creditor.
-     * Produces the minimum number of transactions for any set of balances.
-     *
-     * Example: A=+500, B=-200, C=-300
-     *   Round 1: C(-300) pays A(+500). Transfer 300. A=+200, B=-200, C=0
-     *   Round 2: B(-200) pays A(+200). Transfer 200. A=0, B=0, C=0
-     *   Result: 2 transactions (minimum possible for 3 people).
-     */
+    
     List<SettlementResponse> computeMinimumSettlements(Map<Long, BigDecimal> remaining,
                                                         Map<Long, String> displayNames) {
         List<SettlementResponse> suggestions = new ArrayList<>();
@@ -217,7 +181,7 @@ public class BalanceService {
         return suggestions;
     }
 
-    // ---- Helpers ----
+    
 
     private Set<Long> collectUserIds(Long groupId, List<Expense> expenses,
                                      List<ExpenseParticipant> participants,

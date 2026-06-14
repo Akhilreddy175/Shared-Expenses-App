@@ -4,21 +4,7 @@ import com.sharedexpenses.user.User;
 
 import java.math.BigDecimal;
 
-/**
- * A single user's net financial position in a group.
- *
- * balance = totalPaid - totalShare + settledAmount
- *
- *   totalPaid:     Sum of all expense amounts this user paid on behalf of the group.
- *   totalShare:    Sum of this user's share_amount across all expense_participants rows.
- *   settledAmount: Net effect of settlements. Positive means they've paid out more cash
- *                  than they received (debts are being cleared). Negative means they've
- *                  received more than they paid (their credit is being consumed).
- *
- *   Positive balance → this person is still owed money (creditor).
- *   Negative balance → this person still owes money (debtor).
- *   Zero balance     → fully settled.
- */
+
 public class UserBalanceResponse {
 
     private final Long userId;
