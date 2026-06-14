@@ -1,6 +1,6 @@
 # Shared Expenses App
 
-A backend REST API for tracking shared household expenses. Built as an internship evaluation project.
+A backend REST API for tracking shared household expenses.
 
 Four flat mates — Aisha, Rohan, Priya, and Meera — have been tracking expenses in a spreadsheet since February 2026. Meera moved out at the end of March, Sam joined mid-April. The spreadsheet is messy: inconsistent date formats, duplicate entries, a settlement logged as an expense, unknown members, and more. This app solves that.
 
@@ -20,7 +20,6 @@ Monolithic Spring Boot application using a straightforward layered architecture:
 Controller → Service → Repository → Database
 ```
 
-No microservices, no message queues, no event sourcing. The goal is a system that works, is easy to reason about, and can be explained line-by-line in an interview.
 
 ## Technology Stack
 
