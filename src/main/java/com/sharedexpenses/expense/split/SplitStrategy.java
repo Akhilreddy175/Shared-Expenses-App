@@ -12,4 +12,3 @@ public interface SplitStrategy {
 
     List<BigDecimal> split(BigDecimal totalAmount, List<ParticipantRequest> participants);
 }
-}
