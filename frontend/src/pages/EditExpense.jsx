@@ -8,6 +8,7 @@ const SPLIT_TYPES = ['EQUAL', 'EXACT', 'PERCENTAGE', 'SHARES']
 export default function EditExpense() {
   const { id: groupId, expId } = useParams()
   const navigate = useNavigate()
+  const [group, setGroup] = useState(null)
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -26,10 +27,12 @@ export default function EditExpense() {
 
   async function loadData() {
     try {
-      const [expRes, memRes] = await Promise.all([
+      const [expRes, memRes, grRes] = await Promise.all([
         getExpense(groupId, expId),
         getMembers(groupId),
+        getGroup(groupId),
       ])
+      setGroup(grRes.data)
       const exp = expRes.data
       setDescription(exp.description)
       setAmount(String(exp.amount))
@@ -56,7 +59,7 @@ export default function EditExpense() {
         }
       }))
     } catch {
-      setError('Failed to load expense')
+      setError('Failed to load expense details')
     } finally {
       setLoading(false)
     }
@@ -78,7 +81,10 @@ export default function EditExpense() {
     e.preventDefault()
     setError('')
     const selected = participants.filter((p) => p.selected)
-    if (selected.length === 0) { setError('Select at least one participant'); return }
+    if (selected.length === 0) {
+      setError('Please select at least one participant')
+      return
+    }
 
     setSubmitting(true)
     try {
@@ -108,132 +114,199 @@ export default function EditExpense() {
   if (loading) return <Spinner />
 
   return (
-    <div className="space-y-4 max-w-xl">
+    <div className="space-y-6 max-w-xl">
+
+
       <div>
-        <Link to={`/groups/${groupId}/expenses`} className="text-xs text-gray-400 hover:underline">← Expenses</Link>
-        <h1 className="text-xl font-semibold text-gray-800 mt-0.5">Edit Expense</h1>
+        <Link to={`/groups/${groupId}/expenses`} className="inline-flex items-center text-xs text-slate-500 hover:text-slate-900 hover:underline mb-1">
+          ← Expenses
+        </Link>
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Edit Expense</h1>
+        <p className="text-xs text-slate-500 mt-1">Update transaction #{expId} for {group?.name}</p>
       </div>
 
-      {error && <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded">{error}</p>}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-xs">
+          {error}
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded p-4 space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2">
-            <label className="block text-sm text-gray-600 mb-1">Description *</label>
+
+      <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded p-6 space-y-6">
+
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <div className="md:col-span-2">
+            <label className="block text-xs font-semibold text-slate-650 mb-1">Description *</label>
             <input
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full border border-slate-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-slate-800"
+              placeholder="e.g. Grocery shopping, Electricity bill"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
             />
           </div>
+
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Amount *</label>
+            <label className="block text-xs font-semibold text-slate-655 mb-1">Amount *</label>
             <input
-              type="number" step="0.01" min="0.01"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              type="number"
+              step="0.01"
+              min="0.01"
+              className="w-full border border-slate-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-slate-800"
+              placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
             />
           </div>
+
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Currency *</label>
+            <label className="block text-xs font-semibold text-slate-655 mb-1">Currency *</label>
             <select
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full border border-slate-200 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-slate-800 cursor-pointer"
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
             >
-              {['INR', 'USD', 'EUR', 'GBP'].map((c) => <option key={c} value={c}>{c}</option>)}
+              {['INR', 'USD', 'EUR', 'GBP'].map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
             </select>
           </div>
+
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Date *</label>
+            <label className="block text-xs font-semibold text-slate-655 mb-1">Date *</label>
             <input
               type="date"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full border border-slate-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-slate-800"
               value={expenseDate}
               onChange={(e) => setExpenseDate(e.target.value)}
               required
             />
           </div>
+
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Category</label>
+            <label className="block text-xs font-semibold text-slate-655 mb-1">Category</label>
             <input
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full border border-slate-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-slate-800"
+              placeholder="e.g. Food, Utilities, Travel"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             />
           </div>
+
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Paid By *</label>
+            <label className="block text-xs font-semibold text-slate-655 mb-1">Paid By *</label>
             <select
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full border border-slate-200 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-slate-800 cursor-pointer"
               value={paidBy}
               onChange={(e) => setPaidBy(e.target.value)}
               required
             >
               {members.map((m) => (
                 <option key={m.userId} value={m.userId}>
-                  {m.displayName || `User #${m.userId}`}
+                  {m.displayName || `User #${m.userId}`} (ID: {m.userId})
                 </option>
               ))}
             </select>
           </div>
+
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Split Type *</label>
+            <label className="block text-xs font-semibold text-slate-655 mb-1">Split Type *</label>
             <select
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full border border-slate-200 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-slate-800 cursor-pointer"
               value={splitType}
               onChange={(e) => setSplitType(e.target.value)}
             >
-              {SPLIT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              {SPLIT_TYPES.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
             </select>
           </div>
+
         </div>
 
-        {/* Participants */}
-        <div>
-          <label className="block text-sm text-gray-600 mb-2">Participants</label>
-          <div className="space-y-2">
+
+        <div className="pt-4 border-t border-slate-200">
+          <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">
+            Participants split details
+          </label>
+
+          <div className="bg-slate-50 border border-slate-200 rounded p-4 space-y-3">
             {participants.map((p) => (
-              <div key={p.userId} className="flex items-center gap-3">
-                <input type="checkbox" checked={p.selected} onChange={() => toggleParticipant(p.userId)} />
-                <span className="text-sm text-gray-700 w-28 truncate">{p.name}</span>
-                {p.selected && splitType === 'EXACT' && (
+              <div key={p.userId} className="flex items-center justify-between gap-4 p-2 bg-white rounded border border-slate-100">
+                <label className="flex items-center gap-2 cursor-pointer select-none flex-1 min-w-0 text-xs font-semibold text-slate-800">
                   <input
-                    type="number" step="0.01" placeholder="Amount"
-                    className="border border-gray-300 rounded px-2 py-1 text-sm w-28 focus:outline-none focus:border-blue-500"
-                    value={p.shareAmount}
-                    onChange={(e) => updateParticipant(p.userId, 'shareAmount', e.target.value)}
+                    type="checkbox"
+                    checked={p.selected}
+                    onChange={() => toggleParticipant(p.userId)}
+                    className="w-4 h-4 text-slate-850 border-slate-300 rounded"
                   />
-                )}
-                {p.selected && splitType === 'PERCENTAGE' && (
-                  <input
-                    type="number" step="0.01" placeholder="%"
-                    className="border border-gray-300 rounded px-2 py-1 text-sm w-24 focus:outline-none focus:border-blue-500"
-                    value={p.percentage}
-                    onChange={(e) => updateParticipant(p.userId, 'percentage', e.target.value)}
-                  />
-                )}
-                {p.selected && splitType === 'SHARES' && (
-                  <input
-                    type="number" step="0.5" placeholder="Shares"
-                    className="border border-gray-300 rounded px-2 py-1 text-sm w-24 focus:outline-none focus:border-blue-500"
-                    value={p.shares}
-                    onChange={(e) => updateParticipant(p.userId, 'shares', e.target.value)}
-                  />
+                  <span>{p.name}</span>
+                </label>
+
+                {p.selected && (
+                  <div className="shrink-0">
+                    {splitType === 'EXACT' && (
+                      <div className="relative flex items-center">
+                        <span className="text-xs text-slate-400 font-bold mr-1">₹</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="Amount"
+                          className="border border-slate-200 rounded px-2 py-1 text-xs w-24 bg-white focus:outline-none focus:border-slate-800"
+                          value={p.shareAmount}
+                          onChange={(e) => updateParticipant(p.userId, 'shareAmount', e.target.value)}
+                        />
+                      </div>
+                    )}
+                    {splitType === 'PERCENTAGE' && (
+                      <div className="relative flex items-center">
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="Percent"
+                          className="border border-slate-200 rounded px-2 py-1 text-xs w-20 bg-white focus:outline-none focus:border-slate-800 text-right mr-1"
+                          value={p.percentage}
+                          onChange={(e) => updateParticipant(p.userId, 'percentage', e.target.value)}
+                        />
+                        <span className="text-xs text-slate-400 font-bold">%</span>
+                      </div>
+                    )}
+                    {splitType === 'SHARES' && (
+                      <input
+                        type="number"
+                        step="0.5"
+                        placeholder="Shares"
+                        className="border border-slate-200 rounded px-2 py-1 text-xs w-20 bg-white focus:outline-none focus:border-slate-800 text-right"
+                        value={p.shares}
+                        onChange={(e) => updateParticipant(p.userId, 'shares', e.target.value)}
+                      />
+                    )}
+                  </div>
                 )}
               </div>
             ))}
           </div>
         </div>
 
-        <div className="flex gap-3 pt-2">
-          <button type="submit" disabled={submitting} className="bg-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50">
-            {submitting ? 'Saving…' : 'Save Changes'}
+
+        <div className="flex items-center gap-3 pt-4 border-t border-slate-200">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-5 py-2 rounded transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+          >
+            {submitting ? 'Saving Changes…' : 'Save Changes'}
           </button>
-          <Link to={`/groups/${groupId}/expenses`} className="text-sm text-gray-500 px-4 py-2 hover:text-gray-800">Cancel</Link>
+
+          <Link
+            to={`/groups/${groupId}/expenses`}
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-5 py-2 rounded transition-colors"
+          >
+            Cancel
+          </Link>
         </div>
       </form>
     </div>

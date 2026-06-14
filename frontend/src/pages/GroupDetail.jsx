@@ -19,18 +19,18 @@ export default function GroupDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  // Edit group
+
   const [editMode, setEditMode] = useState(false)
   const [editName, setEditName] = useState('')
   const [editDesc, setEditDesc] = useState('')
 
-  // Add member
+
   const [showAddMember, setShowAddMember] = useState(false)
   const [newUserId, setNewUserId] = useState('')
   const [newJoinedAt, setNewJoinedAt] = useState('')
   const [memberError, setMemberError] = useState('')
 
-  // Remove member
+
   const [removingId, setRemovingId] = useState(null)
   const [removeLeftAt, setRemoveLeftAt] = useState('')
 
@@ -49,7 +49,7 @@ export default function GroupDetail() {
       setMembers(memRes.data)
       setHistory(histRes.data)
     } catch {
-      setError('Failed to load group')
+      setError('Failed to load group details')
     } finally {
       setLoading(false)
     }
@@ -92,47 +92,88 @@ export default function GroupDetail() {
   }
 
   if (loading) return <Spinner />
-  if (error) return <p className="text-red-600 text-sm">{error}</p>
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <Link to="/groups" className="text-xs text-slate-500 hover:text-slate-900 hover:underline">← Back to Groups</Link>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-xs max-w-lg">
+          {error}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      {/* Group header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <Link to="/groups" className="text-xs text-gray-400 hover:underline">← Groups</Link>
-          {editMode ? (
-            <form onSubmit={handleUpdateGroup} className="mt-1 space-y-2">
-              <input
-                className="border border-gray-300 rounded px-2 py-1 text-sm font-medium"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                required
-              />
-              <input
-                className="border border-gray-300 rounded px-2 py-1 text-sm block"
-                placeholder="Description"
-                value={editDesc}
-                onChange={(e) => setEditDesc(e.target.value)}
-              />
-              <div className="space-x-2">
-                <button type="submit" className="text-xs bg-blue-600 text-white px-3 py-1 rounded">Save</button>
-                <button type="button" onClick={() => setEditMode(false)} className="text-xs text-gray-500">Cancel</button>
-              </div>
-            </form>
-          ) : (
-            <>
-              <h1 className="text-xl font-semibold text-gray-800 mt-1">{group.name}</h1>
-              {group.description && <p className="text-sm text-gray-500">{group.description}</p>}
-            </>
+
+
+      <div className="bg-white border border-slate-200 rounded p-6">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1 flex-1">
+            <Link to="/groups" className="inline-flex items-center text-xs text-slate-400 hover:text-slate-800 hover:underline mb-1">
+              ← Back to Groups
+            </Link>
+
+            {editMode ? (
+              <form onSubmit={handleUpdateGroup} className="mt-2 space-y-3 max-w-md">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Group Name</label>
+                  <input
+                    className="w-full border border-slate-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-slate-800"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Description</label>
+                  <input
+                    className="w-full border border-slate-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-slate-800"
+                    placeholder="Add description"
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="bg-slate-800 hover:bg-slate-950 text-white text-xs font-semibold px-4 py-2 rounded transition-colors cursor-pointer"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditMode(false)}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-4 py-2 rounded transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <h1 className="text-xl font-bold text-slate-900 tracking-tight">{group.name}</h1>
+                <p className="text-xs text-slate-500">
+                  {group.description || 'No description provided.'}
+                </p>
+              </>
+            )}
+          </div>
+
+          {!editMode && (
+            <button
+              onClick={() => setEditMode(true)}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-slate-650 hover:text-slate-900 bg-white hover:bg-slate-50 px-3 py-1.5 rounded border border-slate-200 transition-colors cursor-pointer"
+            >
+              Edit Group
+            </button>
           )}
         </div>
-        {!editMode && (
-          <button onClick={() => setEditMode(true)} className="text-xs text-gray-500 hover:text-blue-600">Edit</button>
-        )}
       </div>
 
-      {/* Quick links */}
-      <div className="flex flex-wrap gap-2">
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { to: `/groups/${id}/expenses`, label: 'Expenses' },
           { to: `/groups/${id}/balances`, label: 'Balances' },
@@ -142,130 +183,150 @@ export default function GroupDetail() {
           <Link
             key={link.to}
             to={link.to}
-            className="text-sm border border-gray-300 rounded px-3 py-1.5 text-gray-700 hover:border-blue-400 hover:text-blue-600"
+            className="flex flex-col items-center justify-center p-4 bg-white border border-slate-200 rounded text-slate-800 hover:border-slate-800 hover:text-slate-900 transition-colors text-xs font-semibold"
           >
             {link.label}
           </Link>
         ))}
       </div>
 
-      {/* Active Members */}
-      <section>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-semibold text-gray-700">Active Members ({members.length})</h2>
-          <button
-            onClick={() => setShowAddMember(!showAddMember)}
-            className="text-xs text-blue-600 hover:underline"
-          >
-            {showAddMember ? 'Cancel' : '+ Add Member'}
-          </button>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+
+        <div className="lg:col-span-2 space-y-6">
+          <section className="bg-white border border-slate-200 rounded p-5 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Active Members ({members.length})</h2>
+              <button
+                onClick={() => { setShowAddMember(!showAddMember); setMemberError('') }}
+                className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded border transition-colors cursor-pointer ${
+                  showAddMember
+                    ? 'bg-slate-100 border-slate-300 text-slate-700'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {showAddMember ? 'Cancel' : 'Add Member'}
+              </button>
+            </div>
+
+
+            {showAddMember && (
+              <form onSubmit={handleAddMember} className="bg-slate-50 border border-slate-200 rounded p-4 space-y-3">
+                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">Add Member</h3>
+                {memberError && (
+                  <p className="text-xs text-red-600 bg-red-50 border border-red-200 px-3 py-1.5 rounded">{memberError}</p>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">User ID *</label>
+                    <input
+                      type="number"
+                      className="w-full border border-slate-200 rounded px-3 py-1.5 text-xs bg-white focus:outline-none focus:border-slate-800"
+                      placeholder="e.g. 5"
+                      value={newUserId}
+                      onChange={(e) => setNewUserId(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Joined Date</label>
+                    <input
+                      type="date"
+                      className="w-full border border-slate-200 rounded px-3 py-1.5 text-xs bg-white focus:outline-none focus:border-slate-800"
+                      value={newJoinedAt}
+                      onChange={(e) => setNewJoinedAt(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <button type="submit" className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-4 py-2 rounded transition-colors cursor-pointer">
+                  Add Member
+                </button>
+              </form>
+            )}
+
+            {members.length === 0 ? (
+              <p className="text-xs text-slate-500 text-center py-6">No active members in this group.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-250 bg-slate-50">
+                      <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">Member</th>
+                      <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">Joined Date</th>
+                      <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {members.map((m) => (
+                      <tr key={m.userId} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-4 py-3">
+                          <span className="font-semibold text-slate-800 block">
+                            {m.displayName || `User #${m.userId}`}
+                          </span>
+                          <span className="text-[10px] text-slate-400">User ID: {m.userId} • {m.email}</span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-500 font-medium">{m.joinedAt || '—'}</td>
+                        <td className="px-4 py-3 text-right">
+                          {removingId === m.userId ? (
+                            <span className="flex items-center justify-end gap-2">
+                              <input
+                                type="date"
+                                className="border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none"
+                                value={removeLeftAt}
+                                onChange={(e) => setRemoveLeftAt(e.target.value)}
+                              />
+                              <button
+                                onClick={() => handleRemoveMember(m.userId)}
+                                className="text-xs font-semibold bg-red-650 hover:bg-red-700 text-white px-2.5 py-1 rounded cursor-pointer"
+                              >
+                                Confirm
+                              </button>
+                              <button onClick={() => setRemovingId(null)} className="text-xs text-slate-400 hover:text-slate-650">Cancel</button>
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => { setRemovingId(m.userId); setRemoveLeftAt('') }}
+                              className="text-xs font-semibold text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded transition-colors cursor-pointer border border-transparent hover:border-red-100"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
         </div>
 
-        {showAddMember && (
-          <form onSubmit={handleAddMember} className="bg-white border border-gray-200 rounded p-3 mb-3 space-y-2">
-            {memberError && <p className="text-red-600 text-xs">{memberError}</p>}
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">User ID *</label>
-                <input
-                  type="number"
-                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500"
-                  value={newUserId}
-                  onChange={(e) => setNewUserId(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">Joined At</label>
-                <input
-                  type="date"
-                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500"
-                  value={newJoinedAt}
-                  onChange={(e) => setNewJoinedAt(e.target.value)}
-                />
-              </div>
-            </div>
-            <button type="submit" className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded">Add</button>
-          </form>
-        )}
 
-        {members.length === 0 ? (
-          <p className="text-sm text-gray-500">No active members.</p>
-        ) : (
-          <div className="bg-white border border-gray-200 rounded overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Name</th>
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Joined</th>
-                  <th className="text-right px-3 py-2 text-xs text-gray-500 font-medium">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map((m) => (
-                  <tr key={m.userId} className="border-b border-gray-50 last:border-0">
-                    <td className="px-3 py-2 text-gray-800">{m.displayName || `User #${m.userId}`}</td>
-                    <td className="px-3 py-2 text-gray-500">{m.joinedAt || '—'}</td>
-                    <td className="px-3 py-2 text-right">
-                      {removingId === m.userId ? (
-                        <span className="flex items-center justify-end gap-2">
-                          <input
-                            type="date"
-                            className="border border-gray-300 rounded px-1.5 py-1 text-xs"
-                            value={removeLeftAt}
-                            onChange={(e) => setRemoveLeftAt(e.target.value)}
-                          />
-                          <button
-                            onClick={() => handleRemoveMember(m.userId)}
-                            className="text-xs text-red-600 hover:underline"
-                          >
-                            Confirm
-                          </button>
-                          <button onClick={() => setRemovingId(null)} className="text-xs text-gray-400">Cancel</button>
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => { setRemovingId(m.userId); setRemoveLeftAt('') }}
-                          className="text-xs text-red-500 hover:text-red-700"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+        <div>
+          <section className="bg-white border border-slate-200 rounded p-5 space-y-4">
+            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100">Former Members</h2>
 
-      {/* Member history */}
-      {history.some((m) => m.leftAt) && (
-        <section>
-          <h2 className="text-sm font-semibold text-gray-700 mb-2">Former Members</h2>
-          <div className="bg-white border border-gray-200 rounded overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Name</th>
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Joined</th>
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Left</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.filter((m) => m.leftAt).map((m) => (
-                  <tr key={`${m.userId}-${m.joinedAt}`} className="border-b border-gray-50 last:border-0">
-                    <td className="px-3 py-2 text-gray-500">{m.displayName || `User #${m.userId}`}</td>
-                    <td className="px-3 py-2 text-gray-400">{m.joinedAt}</td>
-                    <td className="px-3 py-2 text-gray-400">{m.leftAt}</td>
-                  </tr>
+            {!history.some((m) => m.leftAt) ? (
+              <p className="text-xs text-slate-500 text-center py-6">No former members recorded.</p>
+            ) : (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {history.filter((m) => m.leftAt).map((m, idx) => (
+                  <div key={`${m.userId}-${idx}`} className="p-3 bg-slate-50 border border-slate-200 rounded space-y-1">
+                    <p className="text-xs font-bold text-slate-800">{m.displayName || `User #${m.userId}`}</p>
+                    <div className="flex justify-between text-[10px] text-slate-500">
+                      <span>Joined: {m.joinedAt || '—'}</span>
+                      <span className="text-red-600 font-semibold">Left: {m.leftAt}</span>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
+              </div>
+            )}
+          </section>
+        </div>
+
+
+      </div>
     </div>
   )
 }

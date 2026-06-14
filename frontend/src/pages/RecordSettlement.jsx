@@ -36,27 +36,25 @@ export default function RecordSettlement() {
         setReceiverId(memRes.data.length > 1 ? String(memRes.data[1].userId) : String(memRes.data[0].userId))
       }
     } catch {
-      setError('Failed to load data')
+      setError('Failed to load group members')
     } finally {
       setLoading(false)
     }
   }
 
   function fillFromSuggestion(s) {
-    setPayerId(String(s.from))
-    setReceiverId(String(s.to))
+    setPayerId(String(s.fromUserId))
+    setReceiverId(String(s.toUserId))
     setAmount(String(parseFloat(s.amount).toFixed(2)))
-  }
-
-  function getMemberName(userId) {
-    const m = members.find((m) => m.userId === userId || String(m.userId) === String(userId))
-    return m?.displayName || `User #${userId}`
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    if (payerId === receiverId) { setError('Payer and receiver must be different'); return }
+    if (payerId === receiverId) {
+      setError('Payer and receiver must be different members')
+      return
+    }
     setSubmitting(true)
     try {
       await recordSettlement(groupId, {
@@ -77,105 +75,142 @@ export default function RecordSettlement() {
   if (loading) return <Spinner />
 
   return (
-    <div className="space-y-4 max-w-lg">
+    <div className="space-y-6 max-w-lg">
+
+
       <div>
-        <Link to={`/groups/${groupId}/settlements`} className="text-xs text-gray-400 hover:underline">← Settlements</Link>
-        <h1 className="text-xl font-semibold text-gray-800 mt-0.5">Record Settlement</h1>
+        <Link to={`/groups/${groupId}/settlements`} className="inline-flex items-center text-xs text-slate-500 hover:text-slate-900 hover:underline mb-1">
+          ← Settlements
+        </Link>
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Record Settlement</h1>
+        <p className="text-xs text-slate-500 mt-1">Log a debt settlement or balance payment for {group?.name}</p>
       </div>
 
-      {/* Suggestions */}
+
       {suggestions.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded p-3">
-          <p className="text-xs font-medium text-blue-700 mb-2">Suggested settlements — click to pre-fill:</p>
-          <div className="space-y-1">
+        <div className="bg-slate-50 border border-slate-200 rounded p-4 space-y-2">
+          <div className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+            Suggested Settlements (Click to auto-fill)
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {suggestions.map((s, i) => (
               <button
                 key={i}
                 type="button"
                 onClick={() => fillFromSuggestion(s)}
-                className="block w-full text-left text-sm text-blue-800 hover:bg-blue-100 rounded px-2 py-1"
+                className="w-full text-left bg-white hover:bg-slate-100 border border-slate-200 rounded p-3 text-xs flex flex-col justify-between transition-colors cursor-pointer shadow-sm"
               >
-                {getMemberName(s.from)} → {getMemberName(s.to)}: ₹{parseFloat(s.amount).toFixed(2)}
+                <div className="flex items-center gap-1.5 font-semibold text-slate-700">
+                  <span className="truncate max-w-[80px]">{s.fromName}</span>
+                  <span>→</span>
+                  <span className="truncate max-w-[80px]">{s.toName}</span>
+                </div>
+                <div className="text-xs font-bold text-slate-900 mt-1">
+                  ₹{parseFloat(s.amount).toFixed(2)}
+                </div>
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {error && <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded">{error}</p>}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-xs">
+          {error}
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded p-4 space-y-3">
-        <div className="grid grid-cols-2 gap-3">
+
+      <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded p-6 space-y-4">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Payer *</label>
+            <label className="block text-xs font-semibold text-slate-655 mb-1">Payer (Who Paid) *</label>
             <select
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full border border-slate-200 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-slate-800 cursor-pointer"
               value={payerId}
               onChange={(e) => setPayerId(e.target.value)}
               required
             >
               {members.map((m) => (
                 <option key={m.userId} value={m.userId}>
-                  {m.displayName || `User #${m.userId}`}
+                  {m.displayName || `User #${m.userId}`} (ID: {m.userId})
                 </option>
               ))}
             </select>
           </div>
+
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Receiver *</label>
+            <label className="block text-xs font-semibold text-slate-655 mb-1">Receiver (Who Received) *</label>
             <select
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full border border-slate-200 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-slate-800 cursor-pointer"
               value={receiverId}
               onChange={(e) => setReceiverId(e.target.value)}
               required
             >
               {members.map((m) => (
                 <option key={m.userId} value={m.userId}>
-                  {m.displayName || `User #${m.userId}`}
+                  {m.displayName || `User #${m.userId}`} (ID: {m.userId})
                 </option>
               ))}
             </select>
           </div>
+
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Amount *</label>
+            <label className="block text-xs font-semibold text-slate-655 mb-1">Amount *</label>
             <input
-              type="number" step="0.01" min="0.01"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              type="number"
+              step="0.01"
+              min="0.01"
+              className="w-full border border-slate-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-slate-800"
+              placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
             />
           </div>
+
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Date</label>
+            <label className="block text-xs font-semibold text-slate-655 mb-1">Date</label>
             <input
               type="date"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="w-full border border-slate-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-slate-800"
               value={settlementDate}
               onChange={(e) => setSettlementDate(e.target.value)}
             />
           </div>
-          <div className="col-span-2">
-            <label className="block text-sm text-gray-600 mb-1">Note</label>
+
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-semibold text-slate-655 mb-1">Note</label>
             <input
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-              placeholder="Optional note"
+              className="w-full border border-slate-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-slate-800"
+              placeholder="Optional notes (e.g. UPI transfer, Cash)"
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
           </div>
+
         </div>
 
-        <div className="flex gap-3 pt-2">
+
+        <div className="flex items-center gap-3 pt-4 border-t border-slate-200">
           <button
             type="submit"
             disabled={submitting}
-            className="bg-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+            className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-5 py-2 rounded transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
           >
-            {submitting ? 'Saving…' : 'Record Settlement'}
+            {submitting ? 'Recording…' : 'Record Settlement'}
           </button>
-          <Link to={`/groups/${groupId}/settlements`} className="text-sm text-gray-500 px-4 py-2 hover:text-gray-800">Cancel</Link>
+          <Link
+            to={`/groups/${groupId}/settlements`}
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-5 py-2 rounded transition-colors"
+          >
+            Cancel
+          </Link>
         </div>
+
       </form>
     </div>
   )

@@ -30,7 +30,6 @@ export default function ImportReport() {
   function handleDownload() {
     const url = downloadReport(groupId, jobId)
     const token = localStorage.getItem('token')
-    // Open in same tab with auth via fetched blob
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.blob())
       .then((blob) => {
@@ -42,7 +41,17 @@ export default function ImportReport() {
   }
 
   if (loading) return <Spinner />
-  if (error) return <p className="text-red-600 text-sm">{error}</p>
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <Link to={`/groups/${groupId}/imports/${jobId}/review`} className="text-xs text-slate-500 hover:text-slate-900 hover:underline">← Back to Review</Link>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-xs max-w-lg">
+          {error}
+        </div>
+      </div>
+    )
+  }
 
   const summary = report?.summary || {}
   const issueStats = report?.issueStats || {}
@@ -52,77 +61,112 @@ export default function ImportReport() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+
+
+      <div className="flex items-start justify-between pb-4 border-b border-slate-200">
         <div>
-          <Link to={`/groups/${groupId}/imports/${jobId}/review`} className="text-xs text-gray-400 hover:underline">← Review</Link>
-          <h1 className="text-xl font-semibold text-gray-800 mt-0.5">Import Report</h1>
-          <p className="text-sm text-gray-500">{summary.filename}</p>
+          <Link to={`/groups/${groupId}/imports/${jobId}/review`} className="inline-flex items-center text-xs text-slate-500 hover:text-slate-900 hover:underline mb-1">
+            ← Review
+          </Link>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Import Report</h1>
+          <p className="text-xs text-slate-500 mt-1">{summary.filename} • Group: {group?.name}</p>
         </div>
         <button
           onClick={handleDownload}
-          className="text-sm border border-gray-300 rounded px-3 py-1.5 text-gray-600 hover:border-blue-400 hover:text-blue-600"
+          className="text-xs font-bold border border-slate-200 hover:border-slate-800 hover:bg-slate-50 px-3.5 py-2 rounded transition-colors cursor-pointer"
         >
-          ↓ Download JSON
+          Download JSON
         </button>
       </div>
 
-      {/* Summary */}
-      <div className="bg-white border border-gray-200 rounded p-4">
-        <h2 className="text-sm font-medium text-gray-700 mb-3">Summary</h2>
-        <div className="grid grid-cols-4 gap-4 text-sm">
-          <div><p className="text-xs text-gray-500">Total Rows</p><p className="font-medium">{summary.totalRows ?? '—'}</p></div>
-          <div><p className="text-xs text-gray-500">Valid</p><p className="font-medium text-green-600">{summary.validRows ?? '—'}</p></div>
-          <div><p className="text-xs text-gray-500">Invalid</p><p className="font-medium text-red-600">{summary.invalidRows ?? '—'}</p></div>
-          <div><p className="text-xs text-gray-500">Imported</p><p className="font-medium text-purple-600">{summary.importedRows ?? '—'}</p></div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+
+        <div className="bg-white border border-slate-200 rounded p-5 space-y-4">
+          <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Summary Statistics</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-slate-50 rounded border border-slate-200">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Rows</span>
+              <span className="text-sm font-bold text-slate-800 mt-0.5 block">{summary.totalRows ?? '—'}</span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded border border-slate-200">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Valid Rows</span>
+              <span className="text-sm font-bold text-green-700 mt-0.5 block">{summary.validRows ?? '—'}</span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded border border-slate-200">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Invalid Rows</span>
+              <span className="text-sm font-bold text-red-700 mt-0.5 block">{summary.invalidRows ?? '—'}</span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded border border-slate-200">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Imported Rows</span>
+              <span className="text-sm font-bold text-purple-700 mt-0.5 block">{summary.importedRows ?? '—'}</span>
+            </div>
+          </div>
+          <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-3 text-xs text-slate-550">
+            <div><span className="font-semibold block text-[10px] text-slate-400 uppercase tracking-wider">Workflow status</span>{summary.jobStatus}</div>
+            <div><span className="font-semibold block text-[10px] text-slate-400 uppercase tracking-wider">Generated At</span>{report?.generatedAt ? new Date(report.generatedAt).toLocaleString() : '—'}</div>
+          </div>
         </div>
-        <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-4 text-sm">
-          <div><p className="text-xs text-gray-500">Job Status</p><p className="font-medium">{summary.jobStatus}</p></div>
-          <div><p className="text-xs text-gray-500">Review Status</p><p className="font-medium">{summary.reviewStatus || '—'}</p></div>
-          <div><p className="text-xs text-gray-500">Generated At</p><p className="font-medium">{report?.generatedAt ? new Date(report.generatedAt).toLocaleString() : '—'}</p></div>
+
+
+        <div className="bg-white border border-slate-200 rounded p-5 space-y-4">
+          <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Issue Diagnostics</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-slate-50 rounded border border-slate-200">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Anomalies</span>
+              <span className="text-sm font-bold text-slate-800 mt-0.5 block">{issueStats.totalIssues ?? 0}</span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded border border-slate-200">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Errors</span>
+              <span className="text-sm font-bold text-red-700 mt-0.5 block">{issueStats.errors ?? 0}</span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded border border-slate-200">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Warnings</span>
+              <span className="text-sm font-bold text-amber-600 mt-0.5 block">{issueStats.warnings ?? 0}</span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded border border-slate-200">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Impacted Rows</span>
+              <span className="text-sm font-bold text-red-600 mt-0.5 block">{issueStats.rowsWithErrors ?? 0}</span>
+            </div>
+          </div>
+          <div className="pt-2 border-t border-slate-100 text-xs text-slate-550">
+            <div><span className="font-semibold block text-[10px] text-slate-400 uppercase tracking-wider">Approval Status</span>{summary.reviewStatus || '—'}</div>
+          </div>
         </div>
+
       </div>
 
-      {/* Issue stats */}
-      {issueStats.totalIssues > 0 && (
-        <div className="bg-white border border-gray-200 rounded p-4">
-          <h2 className="text-sm font-medium text-gray-700 mb-3">Issue Statistics</h2>
-          <div className="grid grid-cols-4 gap-4 text-sm">
-            <div><p className="text-xs text-gray-500">Total Issues</p><p className="font-medium">{issueStats.totalIssues}</p></div>
-            <div><p className="text-xs text-gray-500">Errors</p><p className="font-medium text-red-600">{issueStats.errors}</p></div>
-            <div><p className="text-xs text-gray-500">Warnings</p><p className="font-medium text-yellow-600">{issueStats.warnings}</p></div>
-            <div><p className="text-xs text-gray-500">Rows with Errors</p><p className="font-medium text-red-500">{issueStats.rowsWithErrors}</p></div>
-          </div>
-        </div>
-      )}
 
-      {/* Issues found */}
       {issues.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Issues Found</h2>
-          <div className="bg-white border border-gray-200 rounded overflow-hidden">
-            <table className="w-full text-sm">
+        <section className="bg-white border border-slate-200 rounded p-5 space-y-3">
+          <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100">
+            Identified Issues ({issues.length})
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Row</th>
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Type</th>
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Severity</th>
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Message</th>
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Action</th>
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">Row</th>
+                  <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">Anomaly Type</th>
+                  <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">Severity</th>
+                  <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">Message Description</th>
+                  <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">Correction Advised</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {issues.map((issue, i) => (
-                  <tr key={i} className="border-b border-gray-50 last:border-0">
-                    <td className="px-3 py-2 text-gray-500">{issue.rowNumber}</td>
-                    <td className="px-3 py-2 text-xs text-gray-600">{issue.issueType}</td>
-                    <td className="px-3 py-2">
+                  <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3 text-slate-500 font-semibold">{issue.rowNumber}</td>
+                    <td className="px-4 py-3 text-slate-700 font-semibold whitespace-nowrap">{issue.issueType}</td>
+                    <td className="px-4 py-3">
                       {issue.severity === 'ERROR'
-                        ? <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded">ERROR</span>
-                        : <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">WARN</span>
+                        ? <span className="inline-flex items-center text-[9px] font-bold bg-red-50 text-red-800 px-1.5 py-0.5 rounded border border-red-200">ERROR</span>
+                        : <span className="inline-flex items-center text-[9px] font-bold bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded border border-amber-200">WARN</span>
                       }
                     </td>
-                    <td className="px-3 py-2 text-gray-700">{issue.message}</td>
-                    <td className="px-3 py-2 text-gray-500 text-xs">{issue.recommendedAction || '—'}</td>
+                    <td className="px-4 py-3 text-slate-800 leading-normal">{issue.message}</td>
+                    <td className="px-4 py-3 text-slate-500 leading-normal font-medium">{issue.recommendedAction || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -131,31 +175,31 @@ export default function ImportReport() {
         </section>
       )}
 
-      {/* Imported records */}
+
       {imported.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">
+        <section className="bg-white border border-slate-200 rounded p-5 space-y-3">
+          <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100">
             Imported Records ({imported.length})
           </h2>
-          <div className="bg-white border border-gray-200 rounded overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Row</th>
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Description</th>
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Date</th>
-                  <th className="text-right px-3 py-2 text-xs text-gray-500 font-medium">Amount</th>
-                  <th className="text-right px-3 py-2 text-xs text-gray-500 font-medium">Expense ID</th>
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">Row</th>
+                  <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">Description</th>
+                  <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">Date</th>
+                  <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider text-right">Amount</th>
+                  <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider text-right">Created Expense ID</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {imported.map((r, i) => (
-                  <tr key={i} className="border-b border-gray-50 last:border-0">
-                    <td className="px-3 py-2 text-gray-500">{r.rowNumber}</td>
-                    <td className="px-3 py-2 text-gray-800">{r.description}</td>
-                    <td className="px-3 py-2 text-gray-500">{r.date}</td>
-                    <td className="px-3 py-2 text-right">{r.currency} {parseFloat(r.amount).toFixed(2)}</td>
-                    <td className="px-3 py-2 text-right text-gray-400">#{r.expenseId}</td>
+                  <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3 text-slate-500 font-semibold">{r.rowNumber}</td>
+                    <td className="px-4 py-3 font-semibold text-slate-800">{r.description}</td>
+                    <td className="px-4 py-3 text-slate-500 font-semibold">{r.date}</td>
+                    <td className="px-4 py-3 text-right font-bold text-slate-900">{r.currency} {parseFloat(r.amount).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right text-xs text-slate-400 font-semibold">#{r.expenseId}</td>
                   </tr>
                 ))}
               </tbody>
@@ -164,29 +208,29 @@ export default function ImportReport() {
         </section>
       )}
 
-      {/* Skipped records */}
+
       {skipped.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">
-            Skipped Records ({skipped.length})
+        <section className="bg-white border border-slate-200 rounded p-5 space-y-3">
+          <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100">
+            Skipped / Excluded Records ({skipped.length})
           </h2>
-          <div className="bg-white border border-gray-200 rounded overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Row</th>
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Description</th>
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Status</th>
-                  <th className="text-right px-3 py-2 text-xs text-gray-500 font-medium">Issues</th>
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">Row</th>
+                  <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">Description</th>
+                  <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">Reason status</th>
+                  <th className="px-4 py-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider text-right">Errors Found</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {skipped.map((r, i) => (
-                  <tr key={i} className="border-b border-gray-50 last:border-0">
-                    <td className="px-3 py-2 text-gray-500">{r.rowNumber}</td>
-                    <td className="px-3 py-2 text-gray-600">{r.description}</td>
-                    <td className="px-3 py-2 text-xs text-gray-500">{r.status}</td>
-                    <td className="px-3 py-2 text-right text-red-500">{r.issuesCount}</td>
+                  <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3 text-slate-500 font-semibold">{r.rowNumber}</td>
+                    <td className="px-4 py-3 text-slate-700 font-medium">{r.description}</td>
+                    <td className="px-4 py-3 text-slate-400 font-medium">{r.status}</td>
+                    <td className="px-4 py-3 text-right text-xs text-red-600 font-bold">{r.issuesCount} issues</td>
                   </tr>
                 ))}
               </tbody>

@@ -4,7 +4,6 @@ import {
   getImportJobs,
   uploadCsv,
   deleteImportJob,
-  getFullReport,
   submitForReview,
   getGroup,
 } from '../api/client'
@@ -12,14 +11,19 @@ import Spinner from '../components/Spinner'
 
 function statusBadge(status) {
   const cls = {
-    PENDING: 'bg-yellow-100 text-yellow-800',
-    PROCESSING: 'bg-blue-100 text-blue-800',
-    PROCESSED: 'bg-green-100 text-green-800',
-    FAILED: 'bg-red-100 text-red-800',
-    IMPORTED: 'bg-purple-100 text-purple-800',
-    PENDING_REVIEW: 'bg-orange-100 text-orange-800',
-  }[status] || 'bg-gray-100 text-gray-700'
-  return <span className={`text-xs px-2 py-0.5 rounded ${cls}`}>{status}</span>
+    PENDING: 'bg-yellow-50 text-yellow-800 border-yellow-200',
+    PROCESSING: 'bg-blue-50 text-blue-800 border-blue-200',
+    PROCESSED: 'bg-green-50 text-green-800 border-green-200',
+    FAILED: 'bg-red-50 text-red-800 border-red-200',
+    IMPORTED: 'bg-purple-50 text-purple-800 border-purple-200',
+    PENDING_REVIEW: 'bg-amber-50 text-amber-800 border-amber-200',
+  }[status] || 'bg-slate-50 text-slate-800 border-slate-200'
+
+  return (
+    <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${cls}`}>
+      {status.replace('_', ' ')}
+    </span>
+  )
 }
 
 export default function CsvImport() {
@@ -49,7 +53,10 @@ export default function CsvImport() {
   async function handleUpload(e) {
     e.preventDefault()
     const file = fileRef.current?.files?.[0]
-    if (!file) { setError('Select a CSV file'); return }
+    if (!file) {
+      setError('Please select a valid CSV file')
+      return
+    }
     setError('')
     setUploadResult(null)
     setUploading(true)
@@ -61,14 +68,14 @@ export default function CsvImport() {
       fileRef.current.value = ''
       loadData()
     } catch (err) {
-      setError(err.response?.data?.error || 'Upload failed')
+      setError(err.response?.data?.error || 'CSV Upload failed. Ensure the format matches the guidelines.')
     } finally {
       setUploading(false)
     }
   }
 
   async function handleDelete(jobId) {
-    if (!confirm('Delete this import job?')) return
+    if (!confirm('Are you sure you want to delete this import job? This deletes all associated review records.')) return
     try {
       await deleteImportJob(groupId, jobId)
       setJobs((prev) => prev.filter((j) => j.id !== jobId))
@@ -90,95 +97,114 @@ export default function CsvImport() {
 
   return (
     <div className="space-y-6">
+
+
       <div>
-        <Link to={`/groups/${groupId}`} className="text-xs text-gray-400 hover:underline">← {group?.name}</Link>
-        <h1 className="text-xl font-semibold text-gray-800 mt-0.5">CSV Import</h1>
+        <Link to={`/groups/${groupId}`} className="inline-flex items-center text-xs text-slate-500 hover:text-slate-900 hover:underline mb-1">
+          ← {group?.name || 'Back to Group'}
+        </Link>
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight">CSV Import</h1>
+        <p className="text-xs text-slate-500 mt-1">Batch import expenses using formatted CSV spreadsheets</p>
       </div>
 
-      {/* Upload form */}
-      <div className="bg-white border border-gray-200 rounded p-4">
-        <h2 className="text-sm font-medium text-gray-700 mb-3">Upload CSV</h2>
-        <form onSubmit={handleUpload} className="flex items-center gap-3">
+
+      <div className="bg-white border border-slate-200 rounded p-6 space-y-4">
+        <div>
+          <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Upload CSV Document</h2>
+          <p className="text-[10px] text-slate-500 mt-0.5">CSV must contain headers: Description, Amount, Date, SplitType, Category, and split values.</p>
+        </div>
+
+        <form onSubmit={handleUpload} className="flex flex-col sm:flex-row sm:items-center gap-3">
           <input
             ref={fileRef}
             type="file"
             accept=".csv"
-            className="text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-gray-300 file:text-sm file:text-gray-600 file:bg-white hover:file:bg-gray-50"
+            className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded px-3 py-2 flex-1 cursor-pointer focus:outline-none file:mr-3 file:py-1 file:px-2 file:border file:border-slate-300 file:rounded file:text-[10px] file:font-bold file:uppercase file:bg-white file:text-slate-700 hover:file:bg-slate-50"
           />
           <button
             type="submit"
             disabled={uploading}
-            className="bg-blue-600 text-white text-sm px-4 py-1.5 rounded hover:bg-blue-700 disabled:opacity-50"
+            className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-4 py-2 rounded transition-colors disabled:opacity-50 shrink-0 cursor-pointer flex items-center justify-center gap-2"
           >
-            {uploading ? 'Uploading…' : 'Upload'}
+            {uploading ? 'Uploading…' : 'Upload Document'}
           </button>
         </form>
-        {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
 
-        {/* Upload result summary */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded text-xs">
+            {error}
+          </div>
+        )}
+
+
         {uploadResult && (
-          <div className="mt-3 bg-green-50 border border-green-200 rounded p-3">
-            <p className="text-sm font-medium text-green-800 mb-1">Upload complete: {uploadResult.filename}</p>
-            <div className="grid grid-cols-4 gap-2 text-xs text-green-700">
-              <span>Total: {uploadResult.totalRows}</span>
-              <span>Valid: {uploadResult.validRows}</span>
-              <span>Invalid: {uploadResult.invalidRows}</span>
-              <span>Status: {uploadResult.status}</span>
+          <div className="bg-green-50 border border-green-200 rounded p-4 space-y-2">
+            <p className="text-xs font-bold text-green-800">
+              Upload Complete: {uploadResult.filename}
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-green-700 pt-1">
+              <div><span className="font-semibold block text-[10px] uppercase text-slate-400">Total Rows</span>{uploadResult.totalRows}</div>
+              <div><span className="font-semibold block text-[10px] uppercase text-green-600">Valid Rows</span>{uploadResult.validRows}</div>
+              <div><span className="font-semibold block text-[10px] uppercase text-red-600">Invalid Rows</span>{uploadResult.invalidRows}</div>
+              <div><span className="font-semibold block text-[10px] uppercase text-slate-400">Parsed Status</span>{uploadResult.status}</div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Import jobs list */}
-      <section>
-        <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Import History</h2>
+
+      <section className="bg-white border border-slate-200 rounded p-5 space-y-3">
+        <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100">
+          Import History
+        </h2>
+
         {jobs.length === 0 ? (
-          <p className="text-sm text-gray-500">No imports yet.</p>
+          <p className="text-xs text-slate-500 text-center py-6">No import jobs recorded yet.</p>
         ) : (
-          <div className="bg-white border border-gray-200 rounded overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">File</th>
-                  <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Status</th>
-                  <th className="text-center px-3 py-2 text-xs text-gray-500 font-medium">Rows</th>
-                  <th className="text-center px-3 py-2 text-xs text-gray-500 font-medium">Valid</th>
-                  <th className="text-center px-3 py-2 text-xs text-gray-500 font-medium">Invalid</th>
-                  <th className="text-right px-3 py-2 text-xs text-gray-500 font-medium">Actions</th>
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <th className="px-4 py-2.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider">File Name</th>
+                  <th className="px-4 py-2.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-2.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider text-center">Total Rows</th>
+                  <th className="px-4 py-2.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider text-center">Valid</th>
+                  <th className="px-4 py-2.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider text-center">Invalid</th>
+                  <th className="px-4 py-2.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {jobs.map((j) => (
-                  <tr key={j.id} className="border-b border-gray-50 last:border-0">
-                    <td className="px-3 py-2.5 text-gray-800 font-medium">{j.filename}</td>
-                    <td className="px-3 py-2.5">{statusBadge(j.status)}</td>
-                    <td className="px-3 py-2.5 text-center text-gray-500">{j.totalRows ?? '—'}</td>
-                    <td className="px-3 py-2.5 text-center text-green-600">{j.validRows ?? '—'}</td>
-                    <td className="px-3 py-2.5 text-center text-red-500">{j.invalidRows ?? '—'}</td>
-                    <td className="px-3 py-2.5 text-right space-x-2">
+                  <tr key={j.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3 font-semibold text-slate-800">{j.filename}</td>
+                    <td className="px-4 py-3">{statusBadge(j.status)}</td>
+                    <td className="px-4 py-3 text-center text-slate-500 font-medium">{j.totalRows ?? '—'}</td>
+                    <td className="px-4 py-3 text-center text-green-600 font-bold">{j.validRows ?? '—'}</td>
+                    <td className="px-4 py-3 text-center text-red-500 font-bold">{j.invalidRows ?? '—'}</td>
+                    <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                       {j.status === 'PROCESSED' && (
                         <button
                           onClick={() => handleSubmitReview(j.id)}
-                          className="text-xs text-blue-600 hover:underline"
+                          className="bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded cursor-pointer"
                         >
-                          Submit for Review
+                          Submit
                         </button>
                       )}
                       <Link
                         to={`/groups/${groupId}/imports/${j.id}/review`}
-                        className="text-xs text-gray-500 hover:text-blue-600"
+                        className="text-xs font-semibold text-slate-650 hover:underline"
                       >
                         Review
                       </Link>
                       <Link
                         to={`/groups/${groupId}/imports/${j.id}/report`}
-                        className="text-xs text-gray-500 hover:text-blue-600"
+                        className="text-xs font-semibold text-slate-650 hover:underline"
                       >
                         Report
                       </Link>
                       <button
                         onClick={() => handleDelete(j.id)}
-                        className="text-xs text-red-500 hover:text-red-700"
+                        className="text-xs font-semibold text-red-600 hover:text-red-800 hover:underline cursor-pointer"
                       >
                         Delete
                       </button>

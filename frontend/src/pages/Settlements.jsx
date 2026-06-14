@@ -36,7 +36,7 @@ export default function Settlements() {
   }
 
   async function handleDelete(settlementId) {
-    if (!confirm('Delete this settlement?')) return
+    if (!confirm('Are you sure you want to delete this recorded settlement?')) return
     try {
       await deleteSettlement(groupId, settlementId)
       setSettlements((prev) => prev.filter((s) => s.id !== settlementId))
@@ -46,64 +46,92 @@ export default function Settlements() {
   }
 
   if (loading) return <Spinner />
-  if (error) return <p className="text-red-600 text-sm">{error}</p>
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <Link to={`/groups/${groupId}`} className="text-xs text-slate-500 hover:text-slate-900 hover:underline">← Back to Group</Link>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-xs max-w-lg">
+          {error}
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+
+
+      <div className="flex items-center justify-between pb-4 border-b border-slate-200">
         <div>
-          <Link to={`/groups/${groupId}`} className="text-xs text-gray-400 hover:underline">← {group?.name}</Link>
-          <h1 className="text-xl font-semibold text-gray-800 mt-0.5">Settlements</h1>
+          <Link to={`/groups/${groupId}`} className="inline-flex items-center text-xs text-slate-400 hover:text-slate-800 hover:underline mb-1">
+            ← {group?.name || 'Back to Group'}
+          </Link>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Settlements</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Link
             to={`/groups/${groupId}/balances`}
-            className="text-sm border border-gray-300 rounded px-3 py-1.5 text-gray-600 hover:border-blue-400"
+            className="text-xs font-semibold border border-slate-200 hover:border-slate-800 hover:bg-slate-50 text-slate-600 px-3.5 py-2 rounded transition-colors"
           >
             View Balances
           </Link>
           <Link
             to={`/groups/${groupId}/settlements/record`}
-            className="bg-blue-600 text-white text-sm px-3 py-1.5 rounded hover:bg-blue-700"
+            className="inline-flex items-center bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-3.5 py-2 rounded transition-colors"
           >
-            + Record
+            Record Settlement
           </Link>
         </div>
       </div>
 
+
       {settlements.length === 0 ? (
-        <p className="text-sm text-gray-500">No settlements recorded yet.</p>
+        <div className="bg-white border border-slate-200 rounded p-12 text-center">
+          <p className="text-slate-500 text-xs">No settlements recorded yet in this group.</p>
+          <Link
+            to={`/groups/${groupId}/settlements/record`}
+            className="mt-3 inline-flex bg-slate-105 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-4 py-2 rounded transition-colors"
+          >
+            Record First Settlement
+          </Link>
+        </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Payer</th>
-                <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Receiver</th>
-                <th className="text-left px-3 py-2 text-xs text-gray-500 font-medium">Date</th>
-                <th className="text-right px-3 py-2 text-xs text-gray-500 font-medium">Amount</th>
-                <th className="text-right px-3 py-2 text-xs text-gray-500 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {settlements.map((s) => (
-                <tr key={s.id} className="border-b border-gray-50 last:border-0">
-                  <td className="px-3 py-2.5 text-gray-800">{getMemberName(s.payerId)}</td>
-                  <td className="px-3 py-2.5 text-gray-800">{getMemberName(s.receiverId)}</td>
-                  <td className="px-3 py-2.5 text-gray-500">{s.settlementDate || '—'}</td>
-                  <td className="px-3 py-2.5 text-right font-medium">₹{parseFloat(s.amount).toFixed(2)}</td>
-                  <td className="px-3 py-2.5 text-right">
-                    <button
-                      onClick={() => handleDelete(s.id)}
-                      className="text-xs text-red-500 hover:text-red-700"
-                    >
-                      Delete
-                    </button>
-                  </td>
+        <div className="bg-white border border-slate-200 rounded overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-250 bg-slate-50">
+                  <th className="px-4 py-3 text-[10px] text-slate-500 font-bold uppercase tracking-wider">From (Payer)</th>
+                  <th className="px-4 py-3 text-[10px] text-slate-500 font-bold uppercase tracking-wider">To (Receiver)</th>
+                  <th className="px-4 py-3 text-[10px] text-slate-500 font-bold uppercase tracking-wider">Date</th>
+                  <th className="px-4 py-3 text-[10px] text-slate-500 font-bold uppercase tracking-wider text-right">Amount</th>
+                  <th className="px-4 py-3 text-[10px] text-slate-500 font-bold uppercase tracking-wider text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {settlements.map((s) => (
+                  <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3.5 font-semibold text-slate-800">
+                      {getMemberName(s.payerId)}
+                      {s.note && <span className="block text-[10px] text-slate-400 font-medium mt-0.5">Note: {s.note}</span>}
+                    </td>
+                    <td className="px-4 py-3.5 font-semibold text-slate-800">{getMemberName(s.receiverId)}</td>
+                    <td className="px-4 py-3.5 text-slate-500 font-medium">{s.settlementDate || '—'}</td>
+                    <td className="px-4 py-3.5 text-right font-bold text-slate-900">₹{parseFloat(s.amount).toFixed(2)}</td>
+                    <td className="px-4 py-3.5 text-right">
+                      <button
+                        onClick={() => handleDelete(s.id)}
+                        className="text-xs font-semibold text-red-650 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded transition-colors cursor-pointer border border-transparent hover:border-red-100"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

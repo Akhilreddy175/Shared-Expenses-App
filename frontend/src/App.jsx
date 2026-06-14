@@ -6,6 +6,7 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Groups from './pages/Groups'
+import CreateGroup from './pages/CreateGroup'
 import GroupDetail from './pages/GroupDetail'
 import Expenses from './pages/Expenses'
 import AddExpense from './pages/AddExpense'
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="/profile" element={<ProtectedLayout><Profile /></ProtectedLayout>} />
 
           <Route path="/groups" element={<ProtectedLayout><Groups /></ProtectedLayout>} />
+          <Route path="/groups/create" element={<ProtectedLayout><CreateGroup /></ProtectedLayout>} />
           <Route path="/groups/:id" element={<ProtectedLayout><GroupDetail /></ProtectedLayout>} />
 
           <Route path="/groups/:id/expenses" element={<ProtectedLayout><Expenses /></ProtectedLayout>} />
