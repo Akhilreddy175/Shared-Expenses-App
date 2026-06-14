@@ -32,16 +32,27 @@ public class ImportIssue extends BaseEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 
+    @Column(name = "recommended_action", columnDefinition = "TEXT")
+    private String recommendedAction;
+
     protected ImportIssue() {}
 
+    
     public ImportIssue(Long importRowId, ImportIssueType issueType, IssueSeverity severity,
                        String fieldName, String rawValue, String message) {
+        this(importRowId, issueType, severity, fieldName, rawValue, message, null);
+    }
+
+    
+    public ImportIssue(Long importRowId, ImportIssueType issueType, IssueSeverity severity,
+                       String fieldName, String rawValue, String message, String recommendedAction) {
         this.importRowId = importRowId;
         this.issueType = issueType;
         this.severity = severity;
         this.fieldName = fieldName;
         this.rawValue = rawValue;
         this.message = message;
+        this.recommendedAction = recommendedAction;
     }
 
     public Long getId() { return id; }
@@ -51,4 +62,5 @@ public class ImportIssue extends BaseEntity {
     public String getFieldName() { return fieldName; }
     public String getRawValue() { return rawValue; }
     public String getMessage() { return message; }
+    public String getRecommendedAction() { return recommendedAction; }
 }

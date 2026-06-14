@@ -7,6 +7,7 @@ import com.sharedexpenses.expense.ExpenseService;
 import com.sharedexpenses.expense.SplitType;
 import com.sharedexpenses.expense.dto.CreateExpenseRequest;
 import com.sharedexpenses.expense.dto.ParticipantRequest;
+import com.sharedexpenses.csvimport.anomaly.AnomalyEngine;
 import com.sharedexpenses.group.GroupMember;
 import com.sharedexpenses.group.GroupMemberRepository;
 import com.sharedexpenses.group.GroupService;
@@ -33,6 +34,7 @@ public class CsvImportService {
     private final GroupService groupService;
     private final ExpenseService expenseService;
     private final CsvParserService csvParserService;
+    private final AnomalyEngine anomalyEngine;
 
     public CsvImportService(ImportJobRepository jobRepository,
                             ImportRowRepository rowRepository,
@@ -41,7 +43,8 @@ public class CsvImportService {
                             UserRepository userRepository,
                             GroupService groupService,
                             ExpenseService expenseService,
-                            CsvParserService csvParserService) {
+                            CsvParserService csvParserService,
+                            AnomalyEngine anomalyEngine) {
         this.jobRepository = jobRepository;
         this.rowRepository = rowRepository;
         this.issueRepository = issueRepository;
@@ -50,6 +53,7 @@ public class CsvImportService {
         this.groupService = groupService;
         this.expenseService = expenseService;
         this.csvParserService = csvParserService;
+        this.anomalyEngine = anomalyEngine;
     }
 
     
@@ -91,6 +95,12 @@ public class CsvImportService {
             csvParserService.parseAndStore(job, file.getInputStream(), membersByName, activeMemberIds);
         } catch (IOException e) {
             job.markFailed("Could not read the uploaded file: " + e.getMessage());
+        }
+
+        
+        if (job.getStatus() != ImportJobStatus.FAILED) {
+            List<ImportRow> parsedRows = rowRepository.findByImportJobIdOrderByRowNumber(job.getId());
+            anomalyEngine.analyseAllRows(job, parsedRows, groupId);
         }
 
         ImportJob saved = jobRepository.save(job);

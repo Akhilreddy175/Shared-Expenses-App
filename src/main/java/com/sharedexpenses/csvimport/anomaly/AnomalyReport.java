@@ -1,21 +1,24 @@
-package com.sharedexpenses.csvimport.dto;
+package com.sharedexpenses.csvimport.anomaly;
 
-import com.sharedexpenses.csvimport.ImportIssue;
 import com.sharedexpenses.csvimport.ImportIssueType;
 import com.sharedexpenses.csvimport.IssueSeverity;
 
-public class ImportIssueDetail {
 
+public class AnomalyReport {
+
+    private final String detectorName;
     private final ImportIssueType issueType;
     private final IssueSeverity severity;
     private final String fieldName;
     private final String rawValue;
     private final String message;
+
+    
     private final String recommendedAction;
 
-    private ImportIssueDetail(ImportIssueType issueType, IssueSeverity severity,
-                              String fieldName, String rawValue, String message,
-                              String recommendedAction) {
+    public AnomalyReport(String detectorName, ImportIssueType issueType, IssueSeverity severity,
+                         String fieldName, String rawValue, String message, String recommendedAction) {
+        this.detectorName = detectorName;
         this.issueType = issueType;
         this.severity = severity;
         this.fieldName = fieldName;
@@ -24,13 +27,7 @@ public class ImportIssueDetail {
         this.recommendedAction = recommendedAction;
     }
 
-    public static ImportIssueDetail from(ImportIssue issue) {
-        return new ImportIssueDetail(
-                issue.getIssueType(), issue.getSeverity(),
-                issue.getFieldName(), issue.getRawValue(),
-                issue.getMessage(), issue.getRecommendedAction());
-    }
-
+    public String getDetectorName() { return detectorName; }
     public ImportIssueType getIssueType() { return issueType; }
     public IssueSeverity getSeverity() { return severity; }
     public String getFieldName() { return fieldName; }

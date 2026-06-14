@@ -74,6 +74,13 @@ public class ImportJob extends BaseEntity {
                 : ImportJobStatus.PARTIALLY_IMPORTED;
     }
 
+    
+    public void updateCounts(int total, int valid, int invalid) {
+        this.totalRows = total;
+        this.validRows = valid;
+        this.invalidRows = invalid;
+    }
+
     public Long getId() { return id; }
     public Long getGroupId() { return groupId; }
     public String getFilename() { return filename; }
