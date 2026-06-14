@@ -4,6 +4,7 @@ import com.sharedexpenses.balance.dto.SettlementResponse;
 import com.sharedexpenses.expense.Expense;
 import com.sharedexpenses.expense.ExpenseParticipant;
 import com.sharedexpenses.expense.SplitType;
+import com.sharedexpenses.settlement.Settlement;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,38 +16,33 @@ import java.util.*;
 import static org.assertj.core.api.Assertions.*;
 
 /**
- * Unit tests for the balance computation logic.
+ * Unit tests for BalanceService's pure computation methods.
  *
- * Why test computeMinimumSettlements() directly?
- * The settlement algorithm is pure computation — it takes a Map<Long, BigDecimal>
- * and returns a List<SettlementResponse>. No database, no Spring context.
- * Testing it directly is faster, simpler, and more precise than wiring up mocks.
- * BalanceService.computeMinimumSettlements() is package-private for exactly this reason.
+ * These methods take plain data structures (no repositories).
+ * They are package-private so they can be tested directly without mocking.
+ * The constructor receives all nulls — none of the tested methods use injected beans.
  */
 @DisplayName("BalanceService — computation logic")
 class BalanceServiceTest {
 
-    // We use a minimal BalanceService instance with only the computation methods under test.
-    // The constructor requires all dependencies but we can test the package-private methods
-    // by creating the class with null dependencies — they're not used in these pure methods.
     private BalanceService service;
 
     @BeforeEach
     void setUp() {
-        // null arguments are fine because the tested methods don't call any injected beans
-        service = new BalanceService(null, null, null, null, null, null);
+        // 7 constructor args — all null because the tested methods don't call any repos
+        service = new BalanceService(null, null, null, null, null, null, null);
     }
 
     // ─── computeTotalPaid ─────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("sums amounts correctly for multiple payers")
+    @DisplayName("sums expense amounts per payer correctly")
     void computesTotalPaidPerUser() {
         Set<Long> userIds = Set.of(1L, 2L, 3L);
         List<Expense> expenses = List.of(
-                expense(1L, "300.00"),   // user 1 paid 300
-                expense(2L, "150.00"),   // user 2 paid 150
-                expense(1L, "100.00")    // user 1 paid another 100
+                expense(1L, "300.00"),
+                expense(2L, "150.00"),
+                expense(1L, "100.00")
         );
 
         Map<Long, BigDecimal> paid = service.computeTotalPaid(expenses, userIds);
@@ -59,7 +55,7 @@ class BalanceServiceTest {
     // ─── computeTotalOwed ─────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("sums share amounts correctly for each participant")
+    @DisplayName("sums share amounts per participant correctly")
     void computesTotalOwedPerUser() {
         Set<Long> userIds = Set.of(1L, 2L, 3L);
         List<ExpenseParticipant> participants = List.of(
@@ -78,6 +74,38 @@ class BalanceServiceTest {
         assertThat(owed.get(3L)).isEqualByComparingTo("150.00");
     }
 
+    // ─── computeSettlementNet ─────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("payer's net is positive, receiver's net is negative")
+    void settlementNetSignsAreCorrect() {
+        // Priya (id=3) pays Aisha (id=1) 150
+        Set<Long> userIds = new HashSet<>(Set.of(1L, 2L, 3L));
+        List<Settlement> settlements = List.of(settlement(3L, 1L, "150.00"));
+
+        Map<Long, BigDecimal> net = service.computeSettlementNet(settlements, userIds);
+
+        assertThat(net.get(3L)).isEqualByComparingTo("150.00");   // payer: positive (paid cash)
+        assertThat(net.get(1L)).isEqualByComparingTo("-150.00");  // receiver: negative (received cash)
+        assertThat(net.get(2L)).isEqualByComparingTo("0.00");     // uninvolved: unchanged
+    }
+
+    @Test
+    @DisplayName("multiple settlements accumulate correctly")
+    void multipleSettlementsAccumulate() {
+        Set<Long> userIds = new HashSet<>(Set.of(1L, 2L, 3L));
+        List<Settlement> settlements = List.of(
+                settlement(2L, 1L, "100.00"),   // Rohan pays Aisha 100
+                settlement(3L, 1L, "150.00")    // Priya pays Aisha 150
+        );
+
+        Map<Long, BigDecimal> net = service.computeSettlementNet(settlements, userIds);
+
+        assertThat(net.get(1L)).isEqualByComparingTo("-250.00"); // Aisha received 250 total
+        assertThat(net.get(2L)).isEqualByComparingTo("100.00");  // Rohan paid 100
+        assertThat(net.get(3L)).isEqualByComparingTo("150.00");  // Priya paid 150
+    }
+
     // ─── computeMinimumSettlements ────────────────────────────────────────────
 
     @Test
@@ -86,74 +114,64 @@ class BalanceServiceTest {
         Map<Long, BigDecimal> balances = mapOf(1L, "300.00", 2L, "-300.00");
         Map<Long, String> names = namesOf(1L, "Aisha", 2L, "Rohan");
 
-        List<SettlementResponse> settlements = service.computeMinimumSettlements(balances, names);
+        List<SettlementResponse> result = service.computeMinimumSettlements(balances, names);
 
-        assertThat(settlements).hasSize(1);
-        assertThat(settlements.get(0).getFromDisplayName()).isEqualTo("Rohan");
-        assertThat(settlements.get(0).getToDisplayName()).isEqualTo("Aisha");
-        assertThat(settlements.get(0).getAmount()).isEqualByComparingTo("300.00");
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getFromDisplayName()).isEqualTo("Rohan");
+        assertThat(result.get(0).getToDisplayName()).isEqualTo("Aisha");
+        assertThat(result.get(0).getAmount()).isEqualByComparingTo("300.00");
     }
 
     @Test
-    @DisplayName("two debtors pay the same creditor in two transactions")
+    @DisplayName("two debtors pay the same creditor — two transactions total")
     void twoDebtorsOneCreditor() {
-        // A=+500, B=-200, C=-300
         Map<Long, BigDecimal> balances = mapOf(1L, "500.00", 2L, "-200.00", 3L, "-300.00");
         Map<Long, String> names = namesOf(1L, "Aisha", 2L, "Rohan", 3L, "Priya");
 
-        List<SettlementResponse> settlements = service.computeMinimumSettlements(balances, names);
+        List<SettlementResponse> result = service.computeMinimumSettlements(balances, names);
 
-        // Greedy: largest debtor (Priya -300) pays largest creditor (Aisha +500) first
-        assertThat(settlements).hasSize(2);
-
-        BigDecimal totalTransferred = settlements.stream()
+        assertThat(result).hasSize(2);
+        assertThat(result).allSatisfy(s -> assertThat(s.getToDisplayName()).isEqualTo("Aisha"));
+        BigDecimal totalTransferred = result.stream()
                 .map(SettlementResponse::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         assertThat(totalTransferred).isEqualByComparingTo("500.00");
-
-        // Verify all settlements go to Aisha (the only creditor)
-        assertThat(settlements).allSatisfy(s -> assertThat(s.getToDisplayName()).isEqualTo("Aisha"));
     }
 
     @Test
-    @DisplayName("zero balances produce no settlements")
+    @DisplayName("zero balances produce no settlement suggestions")
     void zeroBalancesProduceNoSettlements() {
         Map<Long, BigDecimal> balances = mapOf(1L, "0.00", 2L, "0.00", 3L, "0.00");
         Map<Long, String> names = namesOf(1L, "A", 2L, "B", 3L, "C");
 
-        List<SettlementResponse> settlements = service.computeMinimumSettlements(balances, names);
-
-        assertThat(settlements).isEmpty();
+        assertThat(service.computeMinimumSettlements(balances, names)).isEmpty();
     }
 
     @Test
-    @DisplayName("full flat-mate scenario: Aisha paid 300, Rohan paid 150, Priya paid 0")
+    @DisplayName("flat-mate scenario: Aisha paid 300, Rohan paid 150, Priya paid 0 — Priya owes Aisha")
     void fullFlatMateScenario() {
-        // Expense 1: Aisha paid 300, equal split among 3 → 100 each
-        // Expense 2: Rohan paid 150, equal split among 3 → 50 each
-        // Aisha: paid 300, owed 150, balance = +150
-        // Rohan: paid 150, owed 150, balance = 0
-        // Priya: paid 0,   owed 150, balance = -150
-        Map<Long, BigDecimal> balances = mapOf(1L, "150.00", 2L, "0.00", 3L, "-150.00");
+        // Expense balance: Aisha=+150, Rohan=0, Priya=-150
+        // Priya paid a settlement of 150 to Aisha: settled amounts shift the balances to 0
+        Map<Long, BigDecimal> balances = mapOf(1L, "0.00", 2L, "0.00", 3L, "0.00");
         Map<Long, String> names = namesOf(1L, "Aisha", 2L, "Rohan", 3L, "Priya");
 
-        List<SettlementResponse> settlements = service.computeMinimumSettlements(balances, names);
-
-        assertThat(settlements).hasSize(1);
-        assertThat(settlements.get(0).getFromDisplayName()).isEqualTo("Priya");
-        assertThat(settlements.get(0).getToDisplayName()).isEqualTo("Aisha");
-        assertThat(settlements.get(0).getAmount()).isEqualByComparingTo("150.00");
+        assertThat(service.computeMinimumSettlements(balances, names)).isEmpty();
     }
 
     // ─── helpers ──────────────────────────────────────────────────────────────
 
     private Expense expense(Long paidBy, String amount) {
-        return new Expense(1L, "Test expense", new BigDecimal(amount), "INR",
+        return new Expense(1L, "Test", new BigDecimal(amount), "INR",
                 LocalDate.of(2026, 4, 10), paidBy, SplitType.EQUAL, null, paidBy);
     }
 
     private ExpenseParticipant participant(Long expenseId, Long userId, String share) {
         return new ExpenseParticipant(expenseId, userId, new BigDecimal(share));
+    }
+
+    private Settlement settlement(Long payerId, Long receiverId, String amount) {
+        return new Settlement(1L, payerId, receiverId, new BigDecimal(amount),
+                LocalDate.of(2026, 5, 1), null, payerId);
     }
 
     private Map<Long, BigDecimal> mapOf(Object... keysAndValues) {
