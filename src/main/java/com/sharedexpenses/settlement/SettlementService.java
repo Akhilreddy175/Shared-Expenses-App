@@ -1,19 +1,17 @@
 package com.sharedexpenses.settlement;
 
-import com.sharedexpenses.common.ResourceNotFoundException;
-import com.sharedexpenses.common.ValidationException;
+import com.sharedexpenses.AppException;
 import com.sharedexpenses.group.GroupMemberRepository;
 import com.sharedexpenses.group.GroupService;
-import com.sharedexpenses.settlement.dto.RecordSettlementRequest;
-import com.sharedexpenses.settlement.dto.SettlementDetailResponse;
 import com.sharedexpenses.user.User;
 import com.sharedexpenses.user.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -21,58 +19,52 @@ import java.util.stream.Collectors;
 public class SettlementService {
 
     private final SettlementRepository settlementRepository;
-    private final GroupMemberRepository groupMemberRepository;
-    private final GroupService groupService;
+    private final GroupMemberRepository memberRepository;
     private final UserRepository userRepository;
+    private final GroupService groupService;
 
     public SettlementService(SettlementRepository settlementRepository,
-                             GroupMemberRepository groupMemberRepository,
-                             GroupService groupService,
-                             UserRepository userRepository) {
+                             GroupMemberRepository memberRepository,
+                             UserRepository userRepository,
+                             GroupService groupService) {
         this.settlementRepository = settlementRepository;
-        this.groupMemberRepository = groupMemberRepository;
-        this.groupService = groupService;
+        this.memberRepository = memberRepository;
         this.userRepository = userRepository;
+        this.groupService = groupService;
     }
 
-    
     @Transactional
-    public SettlementDetailResponse recordSettlement(Long groupId, RecordSettlementRequest request,
-                                                     Long currentUserId) {
-        groupService.requireMembership(groupId, currentUserId);
+    public Map<String, Object> recordSettlement(Long groupId, Long payerId, Long receiverId, BigDecimal amount,
+                                                LocalDate settlementDate, Long currentUserId) {
 
-        if (request.getPayerId().equals(request.getReceiverId())) {
-            throw new ValidationException("Payer and receiver cannot be the same person");
+        groupService.requireMember(groupId, currentUserId);
+
+        if (payerId.equals(receiverId)) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Payer and receiver cannot be the same person");
         }
 
-        validateGroupMembership(groupId, request.getPayerId(), "Payer");
-        validateGroupMembership(groupId, request.getReceiverId(), "Receiver");
+        if (!memberRepository.existsByGroupIdAndUserId(groupId, payerId)) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Payer (user ID: " + payerId + ") is not a member of this group");
+        }
+        if (!memberRepository.existsByGroupIdAndUserId(groupId, receiverId)) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Receiver (user ID: " + receiverId + ") is not a member of this group");
+        }
 
-        User payer = userRepository.findById(request.getPayerId())
-                .orElseThrow(() -> ResourceNotFoundException.of("User", request.getPayerId()));
-        User receiver = userRepository.findById(request.getReceiverId())
-                .orElseThrow(() -> ResourceNotFoundException.of("User", request.getReceiverId()));
+        User payer = userRepository.findById(payerId)
+                .orElseThrow(() -> AppException.notFound("Payer not found"));
+        User receiver = userRepository.findById(receiverId)
+                .orElseThrow(() -> AppException.notFound("Receiver not found"));
 
-        LocalDate date = request.getSettlementDate() != null
-                ? request.getSettlementDate()
-                : LocalDate.now();
+        LocalDate date = settlementDate != null ? settlementDate : LocalDate.now();
 
-        Settlement settlement = new Settlement(
-                groupId,
-                request.getPayerId(),
-                request.getReceiverId(),
-                request.getAmount(),
-                date,
-                request.getNote() != null ? request.getNote().trim() : null,
-                currentUserId
-        );
+        Settlement settlement = new Settlement(groupId, payerId, receiverId, amount, date, null, currentUserId);
+        settlement = settlementRepository.save(settlement);
 
-        Settlement saved = settlementRepository.save(settlement);
-        return SettlementDetailResponse.from(saved, payer, receiver);
+        return toMap(settlement, payer, receiver);
     }
 
-    public List<SettlementDetailResponse> listSettlements(Long groupId, Long currentUserId) {
-        groupService.requireMembership(groupId, currentUserId);
+    public List<Map<String, Object>> listSettlements(Long groupId, Long userId) {
+        groupService.requireMember(groupId, userId);
 
         List<Settlement> settlements = settlementRepository.findByGroupIdOrderBySettlementDateDesc(groupId);
         if (settlements.isEmpty()) return List.of();
@@ -86,45 +78,43 @@ public class SettlementService {
                 .collect(Collectors.toMap(User::getId, Function.identity()));
 
         return settlements.stream()
-                .map(s -> SettlementDetailResponse.from(
-                        s,
-                        usersById.get(s.getPayerId()),
-                        usersById.get(s.getReceiverId())
-                ))
+                .map(s -> toMap(s, usersById.get(s.getPayerId()), usersById.get(s.getReceiverId())))
                 .collect(Collectors.toList());
     }
 
-    public SettlementDetailResponse getSettlement(Long groupId, Long settlementId, Long currentUserId) {
-        groupService.requireMembership(groupId, currentUserId);
+    public Map<String, Object> getSettlement(Long groupId, Long settlementId, Long userId) {
+        groupService.requireMember(groupId, userId);
+        Settlement settlement = settlementRepository.findByIdAndGroupId(settlementId, groupId)
+                .orElseThrow(() -> AppException.notFound("Settlement not found"));
 
-        Settlement settlement = findOrThrow(groupId, settlementId);
         User payer = userRepository.findById(settlement.getPayerId())
-                .orElseThrow(() -> ResourceNotFoundException.of("User", settlement.getPayerId()));
+                .orElseThrow(() -> AppException.notFound("Payer not found"));
         User receiver = userRepository.findById(settlement.getReceiverId())
-                .orElseThrow(() -> ResourceNotFoundException.of("User", settlement.getReceiverId()));
+                .orElseThrow(() -> AppException.notFound("Receiver not found"));
 
-        return SettlementDetailResponse.from(settlement, payer, receiver);
+        return toMap(settlement, payer, receiver);
     }
 
-    
     @Transactional
-    public void deleteSettlement(Long groupId, Long settlementId, Long currentUserId) {
-        groupService.requireMembership(groupId, currentUserId);
-        Settlement settlement = findOrThrow(groupId, settlementId);
+    public void deleteSettlement(Long groupId, Long settlementId, Long userId) {
+        groupService.requireMember(groupId, userId);
+        Settlement settlement = settlementRepository.findByIdAndGroupId(settlementId, groupId)
+                .orElseThrow(() -> AppException.notFound("Settlement not found"));
         settlementRepository.delete(settlement);
     }
 
-    
-
-    private void validateGroupMembership(Long groupId, Long userId, String role) {
-        if (!groupMemberRepository.existsByGroupIdAndUserId(groupId, userId)) {
-            throw new ValidationException(role + " (user ID: " + userId + ") is not a member of this group");
-        }
-    }
-
-    private Settlement findOrThrow(Long groupId, Long settlementId) {
-        return settlementRepository.findByIdAndGroupId(settlementId, groupId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Settlement " + settlementId + " not found in this group"));
+    private Map<String, Object> toMap(Settlement settlement, User payer, User receiver) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", settlement.getId());
+        map.put("groupId", settlement.getGroupId());
+        map.put("payerUserId", payer.getId());
+        map.put("payerDisplayName", payer.getDisplayName());
+        map.put("receiverUserId", receiver.getId());
+        map.put("receiverDisplayName", receiver.getDisplayName());
+        map.put("amount", settlement.getAmount());
+        map.put("settlementDate", settlement.getSettlementDate());
+        map.put("note", settlement.getNote());
+        map.put("createdAt", settlement.getCreatedAt());
+        return map;
     }
 }

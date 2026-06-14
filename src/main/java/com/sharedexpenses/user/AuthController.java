@@ -1,22 +1,15 @@
 package com.sharedexpenses.user;
 
+import com.sharedexpenses.security.UserPrincipal;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import com.sharedexpenses.common.ApiResponse;
-import com.sharedexpenses.security.UserPrincipal;
-import com.sharedexpenses.user.dto.AuthResponse;
-import com.sharedexpenses.user.dto.LoginRequest;
-import com.sharedexpenses.user.dto.RegisterRequest;
-import com.sharedexpenses.user.dto.UserResponse;
-
-import jakarta.validation.Valid;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -28,22 +21,32 @@ public class AuthController {
         this.userService = userService;
     }
 
+    record RegisterRequest(
+            @NotBlank @Email String email,
+            @NotBlank String password,
+            @NotBlank String displayName
+    ) {}
+
+    record LoginRequest(
+            @NotBlank @Email String email,
+            @NotBlank String password
+    ) {}
+
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
-        AuthResponse response = userService.register(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(response, "Account created successfully"));
+    public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody RegisterRequest req) {
+        Map<String, Object> response = userService.register(req.email(), req.password(), req.displayName());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
-        AuthResponse response = userService.login(request);
-        return ResponseEntity.ok(ApiResponse.ok(response));
+    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest req) {
+        Map<String, Object> response = userService.login(req.email(), req.password());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(@AuthenticationPrincipal UserPrincipal principal) {
-        UserResponse user = userService.getCurrentUser(principal.getId());
-        return ResponseEntity.ok(ApiResponse.ok(user));
+    public ResponseEntity<Map<String, Object>> me(@AuthenticationPrincipal UserPrincipal principal) {
+        Map<String, Object> response = userService.getUserProfile(principal.getId());
+        return ResponseEntity.ok(response);
     }
 }

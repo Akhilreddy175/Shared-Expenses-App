@@ -3,10 +3,9 @@ package com.sharedexpenses.csvimport;
 import com.sharedexpenses.common.BaseEntity;
 import jakarta.persistence.*;
 
-
 @Entity
 @Table(name = "import_issues")
-public class ImportIssue extends BaseEntity {
+public class Anomaly extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,17 +34,15 @@ public class ImportIssue extends BaseEntity {
     @Column(name = "recommended_action", columnDefinition = "TEXT")
     private String recommendedAction;
 
-    protected ImportIssue() {}
+    protected Anomaly() {}
 
-    
-    public ImportIssue(Long importRowId, ImportIssueType issueType, IssueSeverity severity,
-                       String fieldName, String rawValue, String message) {
+    public Anomaly(Long importRowId, ImportIssueType issueType, IssueSeverity severity,
+                   String fieldName, String rawValue, String message) {
         this(importRowId, issueType, severity, fieldName, rawValue, message, null);
     }
 
-    
-    public ImportIssue(Long importRowId, ImportIssueType issueType, IssueSeverity severity,
-                       String fieldName, String rawValue, String message, String recommendedAction) {
+    public Anomaly(Long importRowId, ImportIssueType issueType, IssueSeverity severity,
+                   String fieldName, String rawValue, String message, String recommendedAction) {
         this.importRowId = importRowId;
         this.issueType = issueType;
         this.severity = severity;

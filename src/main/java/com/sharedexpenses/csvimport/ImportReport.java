@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "import_jobs")
-public class ImportJob extends BaseEntity {
+public class ImportReport extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,9 +39,9 @@ public class ImportJob extends BaseEntity {
     @Column(name = "uploaded_by", nullable = false)
     private Long uploadedBy;
 
-    protected ImportJob() {}
+    protected ImportReport() {}
 
-    public ImportJob(Long groupId, String filename, Long uploadedBy) {
+    public ImportReport(Long groupId, String filename, Long uploadedBy) {
         this.groupId = groupId;
         this.filename = filename;
         this.uploadedBy = uploadedBy;
@@ -74,7 +74,6 @@ public class ImportJob extends BaseEntity {
                 : ImportJobStatus.PARTIALLY_IMPORTED;
     }
 
-    
     public void updateCounts(int total, int valid, int invalid) {
         this.totalRows = total;
         this.validRows = valid;
