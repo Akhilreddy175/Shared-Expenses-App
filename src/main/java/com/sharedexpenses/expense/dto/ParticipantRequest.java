@@ -13,11 +13,15 @@ public class ParticipantRequest {
 
     private BigDecimal percentage;
 
+    private BigDecimal shares;
+
     public Long getUserId() { return userId; }
     public BigDecimal getShareAmount() { return shareAmount; }
     public BigDecimal getPercentage() { return percentage; }
+    public BigDecimal getShares() { return shares; }
 
     public void setUserId(Long userId) { this.userId = userId; }
     public void setShareAmount(BigDecimal shareAmount) { this.shareAmount = shareAmount; }
     public void setPercentage(BigDecimal percentage) { this.percentage = percentage; }
+    public void setShares(BigDecimal shares) { this.shares = shares; }
 }

@@ -1,7 +1,7 @@
 package com.sharedexpenses.expense;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +18,8 @@ import com.sharedexpenses.expense.dto.ExpenseParticipantResponse;
 import com.sharedexpenses.expense.dto.ExpenseResponse;
 import com.sharedexpenses.expense.dto.ExpenseSummaryResponse;
 import com.sharedexpenses.expense.dto.ParticipantRequest;
+import com.sharedexpenses.expense.split.SplitStrategy;
+import com.sharedexpenses.expense.split.SplitStrategyFactory;
 import com.sharedexpenses.group.GroupMemberRepository;
 import com.sharedexpenses.group.GroupService;
 import com.sharedexpenses.user.User;
@@ -31,17 +33,20 @@ public class ExpenseService {
     private final GroupMemberRepository groupMemberRepository;
     private final GroupService groupService;
     private final UserRepository userRepository;
+    private final SplitStrategyFactory splitStrategyFactory;
 
     public ExpenseService(ExpenseRepository expenseRepository,
                           ExpenseParticipantRepository participantRepository,
                           GroupMemberRepository groupMemberRepository,
                           GroupService groupService,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          SplitStrategyFactory splitStrategyFactory) {
         this.expenseRepository = expenseRepository;
         this.participantRepository = participantRepository;
         this.groupMemberRepository = groupMemberRepository;
         this.groupService = groupService;
         this.userRepository = userRepository;
+        this.splitStrategyFactory = splitStrategyFactory;
     }
 
     @Transactional
@@ -59,7 +64,8 @@ public class ExpenseService {
         List<Long> participantIds = request.getParticipants().stream()
                 .map(ParticipantRequest::getUserId)
                 .collect(Collectors.toList());
-        List<BigDecimal> shareAmounts = computeShares(request);
+
+        List<BigDecimal> shareAmounts = computeSharesUsingStrategy(request);
 
         Expense expense = new Expense(
                 groupId,
@@ -117,7 +123,7 @@ public class ExpenseService {
 
     @Transactional
     public ExpenseResponse updateExpense(Long groupId, Long expenseId,
-                                         CreateExpenseRequest request, Long currentUserId) {
+                                          CreateExpenseRequest request, Long currentUserId) {
         groupService.requireMembership(groupId, currentUserId);
         Expense expense = findExpenseOrThrow(groupId, expenseId);
 
@@ -139,7 +145,7 @@ public class ExpenseService {
 
         List<Long> participantIds = request.getParticipants().stream()
                 .map(ParticipantRequest::getUserId).collect(Collectors.toList());
-        List<BigDecimal> shareAmounts = computeShares(request);
+        List<BigDecimal> shareAmounts = computeSharesUsingStrategy(request);
 
         participantRepository.deleteByExpenseId(expenseId);
         participantRepository.flush();
@@ -160,89 +166,20 @@ public class ExpenseService {
         expenseRepository.delete(expense);
     }
 
-    private List<BigDecimal> computeShares(CreateExpenseRequest request) {
-        return switch (request.getSplitType()) {
-            case EQUAL -> computeEqualShares(request.getAmount(), request.getParticipants().size());
-            case EXACT -> computeExactShares(request);
-            case PERCENTAGE -> computePercentageShares(request);
-        };
+    private List<BigDecimal> computeSharesUsingStrategy(CreateExpenseRequest request) {
+        SplitStrategy strategy = splitStrategyFactory.getStrategy(request.getSplitType());
+        return strategy.split(request.getAmount(), request.getParticipants());
     }
 
-    private List<BigDecimal> computeEqualShares(BigDecimal total, int count) {
-        BigDecimal perPerson = total.divide(BigDecimal.valueOf(count), 2, RoundingMode.DOWN);
-        BigDecimal distributed = perPerson.multiply(BigDecimal.valueOf(count - 1));
-        BigDecimal lastShare = total.subtract(distributed);
-
-        List<BigDecimal> shares = new ArrayList<>();
-        for (int i = 0; i < count - 1; i++) {
-            shares.add(perPerson);
-        }
-        shares.add(lastShare);
-        return shares;
-    }
-
-    private List<BigDecimal> computeExactShares(CreateExpenseRequest request) {
-        List<BigDecimal> shares = new ArrayList<>();
-        BigDecimal sum = BigDecimal.ZERO;
-
-        for (ParticipantRequest p : request.getParticipants()) {
-            if (p.getShareAmount() == null) {
-                throw new ValidationException("shareAmount is required for each participant when using EXACT split");
-            }
-            shares.add(p.getShareAmount().setScale(2, RoundingMode.HALF_UP));
-            sum = sum.add(p.getShareAmount());
-        }
-
-        BigDecimal diff = request.getAmount().subtract(sum).abs();
-        if (diff.compareTo(new BigDecimal("0.01")) > 0) {
-            throw new ValidationException(
-                    "The sum of participant share amounts (" + sum + ") must equal the expense amount (" + request.getAmount() + ")");
-        }
-
-        return shares;
-    }
-
-    private List<BigDecimal> computePercentageShares(CreateExpenseRequest request) {
-        BigDecimal percentageSum = BigDecimal.ZERO;
-        for (ParticipantRequest p : request.getParticipants()) {
-            if (p.getPercentage() == null) {
-                throw new ValidationException("percentage is required for each participant when using PERCENTAGE split");
-            }
-            percentageSum = percentageSum.add(p.getPercentage());
-        }
-
-        BigDecimal diff = new BigDecimal("100").subtract(percentageSum).abs();
-        if (diff.compareTo(new BigDecimal("0.01")) > 0) {
-            throw new ValidationException(
-                    "Percentages must sum to 100 (got " + percentageSum + ")");
-        }
-
-        List<BigDecimal> shares = new ArrayList<>();
-        BigDecimal distributed = BigDecimal.ZERO;
-        int last = request.getParticipants().size() - 1;
-
-        for (int i = 0; i < request.getParticipants().size(); i++) {
-            if (i == last) {
-                shares.add(request.getAmount().subtract(distributed));
-            } else {
-                BigDecimal share = request.getAmount()
-                        .multiply(request.getParticipants().get(i).getPercentage())
-                        .divide(new BigDecimal("100"), 2, RoundingMode.DOWN);
-                shares.add(share);
-                distributed = distributed.add(share);
-            }
-        }
-        return shares;
-    }
-
-    private void validateMemberOnDate(Long groupId, Long userId, java.time.LocalDate date, String errorMessage) {
+    private void validateMemberOnDate(Long groupId, Long userId, LocalDate date, String errorMessage) {
         groupMemberRepository.findActiveMemberOnDate(groupId, userId, date)
                 .orElseThrow(() -> new ValidationException(errorMessage));
     }
 
     private Expense findExpenseOrThrow(Long groupId, Long expenseId) {
         return expenseRepository.findByIdAndGroupId(expenseId, groupId)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense " + expenseId + " not found in this group"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Expense " + expenseId + " not found in this group"));
     }
 
     private ExpenseResponse buildExpenseResponse(Expense expense, List<ExpenseParticipant> participants) {
