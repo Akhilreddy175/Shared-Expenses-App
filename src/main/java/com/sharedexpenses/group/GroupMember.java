@@ -1,28 +1,16 @@
 package com.sharedexpenses.group;
 
-import com.sharedexpenses.common.BaseEntity;
-import jakarta.persistence.*;
-
 import java.time.LocalDate;
 
-/**
- * Records when a user joined and left a group.
- *
- * Why this matters:
- * Sam moved in mid-April. The CSV has expenses dated April 10 that include Sam.
- * If we only store "Sam is a member," we can't determine whether April 10 falls
- * inside or outside Sam's membership. With joinedAt=2026-04-15, we know April 10
- * is before Sam joined — and that expense is anomalous.
- *
- * Similarly, Meera moved out end of March. Any expense after March 31 that lists
- * Meera as a participant is an error — and we can only catch it because we know
- * her leftAt date.
- *
- * Why not hard-delete when someone leaves?
- * If we deleted Meera's membership record when she left, we'd lose the historical
- * record. The import report needs to show "Meera was flagged as inactive in the
- * April 2 expense" — that's only possible if the record still exists.
- */
+import com.sharedexpenses.common.BaseEntity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
 @Entity
 @Table(name = "group_members")
 public class GroupMember extends BaseEntity {
@@ -40,7 +28,6 @@ public class GroupMember extends BaseEntity {
     @Column(name = "joined_at", nullable = false)
     private LocalDate joinedAt;
 
-    // Null means the member is still active. A non-null value is their last day.
     @Column(name = "left_at")
     private LocalDate leftAt;
 

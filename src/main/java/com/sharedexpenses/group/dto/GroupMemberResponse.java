@@ -1,14 +1,10 @@
 package com.sharedexpenses.group.dto;
 
+import java.time.LocalDate;
+
 import com.sharedexpenses.group.GroupMember;
 import com.sharedexpenses.user.User;
 
-import java.time.LocalDate;
-
-/**
- * Represents one member's entry in a group — includes their user details
- * and the dates they were active. Used in both active member lists and history views.
- */
 public class GroupMemberResponse {
 
     private final Long userId;

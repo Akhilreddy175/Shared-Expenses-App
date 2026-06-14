@@ -1,14 +1,14 @@
 package com.sharedexpenses.group;
 
 import com.sharedexpenses.common.BaseEntity;
-import jakarta.persistence.*;
 
-/**
- * A group is the container for shared expenses — a household, a trip, etc.
- * It tracks who created it and when. Members are tracked separately in GroupMember.
- *
- * Table name is expense_groups because "groups" is a reserved SQL keyword.
- */
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
 @Entity
 @Table(name = "expense_groups")
 public class Group extends BaseEntity {
@@ -22,8 +22,6 @@ public class Group extends BaseEntity {
 
     private String description;
 
-    // Storing just the ID, not a @ManyToOne relation, to keep the entity simple.
-    // We load the creator's User when we need their display name.
     @Column(name = "created_by", nullable = false)
     private Long createdBy;
 

@@ -1,14 +1,10 @@
 package com.sharedexpenses.group.dto;
 
-import com.sharedexpenses.group.Group;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Full group view — returned when a user opens a specific group.
- * Includes the active members list so the client has everything it needs in one response.
- */
+import com.sharedexpenses.group.Group;
+
 public class GroupDetailResponse {
 
     private final Long id;

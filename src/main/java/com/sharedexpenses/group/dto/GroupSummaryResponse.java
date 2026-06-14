@@ -1,13 +1,9 @@
 package com.sharedexpenses.group.dto;
 
-import com.sharedexpenses.group.Group;
-
 import java.time.LocalDateTime;
 
-/**
- * Lightweight group summary — used in the "my groups" list where we don't need
- * to send full member details for every group.
- */
+import com.sharedexpenses.group.Group;
+
 public class GroupSummaryResponse {
 
     private final Long id;

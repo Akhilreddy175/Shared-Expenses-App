@@ -40,6 +40,5 @@ public class User extends BaseEntity {
     public String getPasswordHash() { return passwordHash; }
     public String getDisplayName() { return displayName; }
 
-    // No setter for email or passwordHash — those don't change after registration
     public void setDisplayName(String displayName) { this.displayName = displayName; }
 }
