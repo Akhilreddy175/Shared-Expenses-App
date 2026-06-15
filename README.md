@@ -4,7 +4,7 @@ A backend REST API for tracking shared household expenses, built to handle real-
 
 Four flatmates — Aisha, Rohan, Priya, and Meera — were splitting household costs and logging everything in a shared spreadsheet since February 2026. Meera moved out end of March. Sam joined mid-April. Nobody was consistent about date formats or whether to capitalise things. This app imports that history, flags every problem it finds, and lets you resolve things manually rather than silently guessing.
 
-**Live app:** [https://expenses.akhilreddy.dev](https://expenses.akhilreddy.dev) *(replace with your actual URL)*  
+**Live app:** [https://expenses.akhilreddy.dev](http://16.170.51.207:5173/login)   
 **Repository:** [https://github.com/Akhilreddy175/Shared-Expenses-App](https://github.com/Akhilreddy175/Shared-Expenses-App)
 
 ---
@@ -87,7 +87,7 @@ The JWT secret must be at least 32 characters. The app will throw a clear error 
 mvn spring-boot:run
 ```
 
-The API starts on `http://localhost:8080`. Flyway will create all the tables automatically on first run.
+The API starts on `http://localhost:7070`.
 
 ### 5. Check it's working
 
