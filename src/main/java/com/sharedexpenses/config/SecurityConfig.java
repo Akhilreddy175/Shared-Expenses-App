@@ -84,10 +84,7 @@ public class SecurityConfig {
 
         // Allow the Vite dev server and any localhost port during development.
         // Replace / extend these with your actual production origins before deploying.
-        config.setAllowedOriginPatterns(List.of(
-            "http://localhost:*",
-            "http://127.0.0.1:*"
-        ));
+        config.setAllowedOriginPatterns(List.of("*"));
 
         // Methods the browser is allowed to use.
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
