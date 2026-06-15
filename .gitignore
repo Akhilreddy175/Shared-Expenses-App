@@ -6,9 +6,6 @@ docs/
 *.class
 *.jar
 *.war
-AI_USAGE.md
-DECISIONS.md
-SCOPE.md
 .env
 *.env
 
